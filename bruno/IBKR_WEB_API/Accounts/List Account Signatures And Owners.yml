@@ -1,0 +1,15 @@
+info:
+  name: List Account Signatures And Owners
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: https://localhost:{{gw_port}}/v1/api/acesws/{{accountId}}/signatures-and-owners
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

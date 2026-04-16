@@ -1,0 +1,21 @@
+info:
+  name: Set Active Dynamic Account
+  type: http
+  seq: 10
+
+http:
+  method: POST
+  url: https://127.0.0.1:{{gw_port}}/v1/api/iserver/dynaccount
+  body:
+    type: json
+    data: |-
+      {
+        "accId": "{{accountId}}"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

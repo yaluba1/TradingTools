@@ -1,0 +1,15 @@
+info:
+  name: List All Tradable Accounts
+  type: http
+  seq: 9
+
+http:
+  method: GET
+  url: https://127.0.0.1:{{gw_port}}/v1/api/iserver/accounts
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
