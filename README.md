@@ -2,6 +2,8 @@
 
 TradingTools is a comprehensive Python-based suite designed to interact with the Interactive Brokers (IBKR) Client Portal API. This repository provides a collection of self-contained tools for managing accounts, orders, portfolios, alerts, and market discovery, with built-in support for persistent logging and session tracking.
 
+Personally, I am using this tool in MCPs and skills for AI agents. 
+
 ## Core Features
 
 - **Pacing Compliance**: All tools respect the IBKR 10 requests per second limit.
@@ -102,3 +104,14 @@ python -m tools.ibkr.<tool_name> <command> [arguments]
 ```
 
 Use the `--help` flag with any tool to see available subcommands and arguments.
+
+# Support
+
+IBKR API documentation does not provide schemas for responses, so I did my best to figure out what is optional and what is mandatory. 
+
+It works for me, but if it doesn't for you, feel free to open an issue and I will see what I can do.
+
+## Bruno collection
+
+A [Bruno](https://www.usebruno.com/) collection is available for local testing of each API endpoint. This can be used to verify that the tools are working correctly.
+If something works with Bruno but fails in the tool, then feel free to report a bug.
