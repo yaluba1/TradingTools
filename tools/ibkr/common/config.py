@@ -7,6 +7,8 @@ import yaml
 from pathlib import Path
 from typing import Any, Dict
 
+DB_CONFIG = Path(__file__).parents[3] / "secrets" / "trading_db.yaml"
+
 def load_yaml_config(file_path: Path) -> Dict[str, Any]:
     """
     Load a YAML configuration file from the specified path.
@@ -51,5 +53,4 @@ def get_db_config() -> Dict[str, Any]:
         Dict[str, Any]: The database configuration dictionary containing host,
                         port, credentials, and database name.
     """
-    config_path = Path("./secrets/trading_db.yaml")
-    return load_yaml_config(config_path)
+    return load_yaml_config(DB_CONFIG)
