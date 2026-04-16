@@ -78,7 +78,7 @@ class AccountsManager:
         try:
             data = self.client.get(endpoint)
             # The response is a dictionary where keys are account identifiers.
-            pnl_data = AccountPnLResponse(acctId=data)
+            pnl_data = AccountPnLResponse.model_validate(data)
             self.logger.log_action("get_pnl", message="Retrieved PnL data successfully.")
             return pnl_data
         except Exception as e:
