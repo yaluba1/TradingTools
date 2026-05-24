@@ -2,7 +2,7 @@
 
 TradingTools is a comprehensive Python-based suite designed to interact with the Interactive Brokers (IBKR) Client Portal API. This repository provides a collection of self-contained tools for managing accounts, orders, portfolios, alerts, and market discovery, with built-in support for persistent logging and session tracking.
 
-Personally, I am using this tool in MCPs and skills for AI agents. 
+Personally, I am using this tool in MCPs and skills for AI agents.
 
 ## Core Features
 
@@ -42,12 +42,12 @@ This file configures the connection to the IBKR Client Portal Gateway and genera
 
 ```yaml
 api:
-  base_url: "https://localhost:5001/v1/api/"  # Base URL of your IBKR Gateway
-  verify_ssl: false                          # Set to true if using valid SSL certs
-  timeout_seconds: 30                        # API request timeout
+  base_url: "https://localhost:5001/v1/api/" # Base URL of your IBKR Gateway
+  verify_ssl: false # Set to true if using valid SSL certs
+  timeout_seconds: 30 # API request timeout
 logging:
-  level: "INFO"                              # INFO, DEBUG, or ERROR
-  file_path: "~/logs/ibkr.log"               # Path for persistent file logs
+  level: "INFO" # INFO, DEBUG, or ERROR
+  file_path: "~/logs/ibkr.log" # Path for persistent file logs
 ```
 
 #### Database Configuration (`secrets/trading_db.yaml`)
@@ -56,11 +56,11 @@ This file contains the credentials for the MariaDB instance used for persistent 
 
 ```yaml
 database:
-  host: "localhost"         # Database server host
-  port: 3306                # Database port
-  user: "trading_user"      # Authorized database user
+  host: "localhost" # Database server host
+  port: 3306 # Database port
+  user: "trading_user" # Authorized database user
   password: "your_password" # User password
-  name: "ibkr_db"           # Database name
+  name: "ibkr_db" # Database name
 ```
 
 ### Database Setup
@@ -103,11 +103,17 @@ All tools follow a consistent execution pattern:
 python -m tools.ibkr.<tool_name> <command> [arguments]
 ```
 
+can also use uv:
+
+```bash
+uv run -m tools.ibkr.<tool_name> <command> [arguments]
+```
+
 Use the `--help` flag with any tool to see available subcommands and arguments.
 
 # Support
 
-IBKR API documentation does not provide schemas for responses, so I did my best to figure out what is optional and what is mandatory. 
+IBKR API documentation does not provide schemas for responses, so I did my best to figure out what is optional and what is mandatory.
 
 It works for me, but if it doesn't for you, feel free to open an issue and I will see what I can do.
 

@@ -1,0 +1,22 @@
+info:
+  name: Activate or Deactivate Alert
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: https://localhost:{{gw_port}}/v1/api/iserver/account/{{accountId}}/alert/activate
+  body:
+    type: json
+    data: |-
+      {
+        "alertId": 9876543210,
+        "alertActive": 0
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

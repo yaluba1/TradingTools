@@ -58,9 +58,10 @@ class IBKRLogger:
             file_handler.setFormatter(formatter)
             self.logger.addHandler(file_handler)
             
-            # Console Handler: useful for real-time feedback during CLI usage.
+            # Console Handler: only write warnings and errors to standard streams to keep CLI outputs clean.
             console_handler = logging.StreamHandler()
             console_handler.setFormatter(formatter)
+            console_handler.setLevel(logging.WARNING)
             self.logger.addHandler(console_handler)
 
     def log_action(self, action: str, level: str = "INFO", message: str = "", 

@@ -37,9 +37,10 @@ class IBKRClient:
         self.session = requests.Session()
         self.session.verify = self.verify_ssl
         self.session.headers.update({
-            "User-Agent": "Console",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept": "application/json",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Referer": f"{self.base_url}/"
         })
 
     def _request(self, method: str, endpoint: str, **kwargs) -> requests.Response:

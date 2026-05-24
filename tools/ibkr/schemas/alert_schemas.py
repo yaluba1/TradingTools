@@ -3,8 +3,20 @@ Pydantic schemas for the IBKR Alerts tool.
 This module defines the validation models for request bodies and responses
 as specified in the Interactive Brokers Client Portal API documentation.
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import List, Optional, Union, Dict, Any
+
+# Map for condition type aliases to IBKR integer codes
+CONDITION_TYPES = {
+    "price": 1,
+    "time": 3,
+    "margin": 4,
+    "trade": 5,
+    "volume": 6,
+    "mta market": 7,
+    "mta position": 8,
+    "mta account daily pnl": 9
+}
 
 class AlertCondition(BaseModel):
     """
@@ -15,12 +27,16 @@ class AlertCondition(BaseModel):
         description=(
             "Condition type code: "
             "1: Price, 3: Time, 4: Margin, 5: Trade, 6: Volume, "
-            "7: MTA market, 8: MTA Position, 9: MTA Account Daily PnL"
+            "7: MTA market, 8: MTA Position, 9: MTA Account Daily PnL. "
+            "Strings like 'price', 'time', etc., are also accepted."
         )
     )
     conidex: Optional[str] = Field(
         None, 
-        description="Concatenation of contract ID and exchange: 'conid@exchange' (e.g., '265598@SMART')"
+        description=(
+            "Concatenation of contract ID and exchange: 'conid@exchange' (e.g., '265598@SMART'). "
+            "If 'conid' is provided separately, 'conidex' will be constructed automatically."
+        )
     )
     operator: str = Field(
         ..., 
@@ -34,14 +50,40 @@ class AlertCondition(BaseModel):
         "n", 
         description="Logical binder for multiple conditions: 'a' for AND, 'o' for OR, 'n' for END (last condition)"
     )
-    triggerMethod: int = Field(
-        0, 
-        description="Trigger method for price-based conditions, usually 0 (default)"
+    triggerMethod: str = Field(
+        "0", 
+        description="Trigger method for price-based conditions, usually '0' (default)"
     )
     timeZone: Optional[str] = Field(
         None, 
         description="Time zone for time-specific conditions (e.g., 'US/Eastern')"
     )
+
+    @field_validator("type", mode="before")
+    @classmethod
+    def map_type_string(cls, v: Any) -> Any:
+        """Map string type aliases to their corresponding integer codes."""
+        if isinstance(v, str):
+            v_clean = v.lower().strip()
+            if v_clean in CONDITION_TYPES:
+                return CONDITION_TYPES[v_clean]
+        return v
+
+    @model_validator(mode="before")
+    @classmethod
+    def handle_conid_input(cls, data: Any) -> Any:
+        """
+        Handle 'conid' as an input alias for 'conidex' if provided in the input,
+        maintaining 'conidex' as the primary field as per IBKR API.
+        """
+        if isinstance(data, dict):
+            # If conid is provided but conidex is not, construct conidex
+            if "conid" in data and "conidex" not in data:
+                conid = data.get("conid")
+                # Use exchange if provided, otherwise default to SMART
+                exchange = data.get("exchange", "SMART")
+                data["conidex"] = f"{conid}@{exchange}"
+        return data
 
 class AlertCreateRequest(BaseModel):
     """

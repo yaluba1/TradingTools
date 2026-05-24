@@ -1,0 +1,20 @@
+info:
+  name: Intrument Info and Market Rules
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: https://localhost:{{gw_port}}/v1/api/iserver/contract/{{conid}}/info-and-rules
+  auth: inherit
+
+runtime:
+  variables:
+    - name: conid
+      value: "468091282"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

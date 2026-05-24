@@ -1,0 +1,22 @@
+info:
+  name: List all Stock Conids by Exchange
+  type: http
+  seq: 13
+
+http:
+  method: GET
+  url: https://localhost:{{gw_port}}/v1/api/trsrv/all-conids?exchange=NYSE&assetClass=STK
+  params:
+    - name: exchange
+      value: NYSE
+      type: query
+    - name: assetClass
+      value: STK
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

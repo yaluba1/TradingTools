@@ -1,0 +1,15 @@
+info:
+  name: List all Alerts
+  type: http
+  seq: 3
+
+http:
+  method: GET
+  url: https://localhost:{{gw_port}}/v1/api/iserver/account/{{accountId}}/alerts
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

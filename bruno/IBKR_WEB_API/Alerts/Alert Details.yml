@@ -1,0 +1,20 @@
+info:
+  name: Alert Details
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: https://localhost:{{gw_port}}/v1/api/iserver/account/alert/{{alertId}}
+  auth: inherit
+
+runtime:
+  variables:
+    - name: alertId
+      value: "833967258"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

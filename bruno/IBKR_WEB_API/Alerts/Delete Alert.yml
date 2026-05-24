@@ -1,0 +1,20 @@
+info:
+  name: Delete Alert
+  type: http
+  seq: 5
+
+http:
+  method: DELETE
+  url: https://localhost:{{gw_port}}/v1/api/iserver/account/{{accountId}}/alert/{{alertId}}
+  auth: inherit
+
+runtime:
+  variables:
+    - name: alertId
+      value: "833967258"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

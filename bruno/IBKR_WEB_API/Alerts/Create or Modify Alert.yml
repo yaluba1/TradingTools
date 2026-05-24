@@ -1,0 +1,41 @@
+info:
+  name: Create or Modify Alert
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: https://localhost:{{gw_port}}/v1/api/iserver/account/{{accountId}}/alert
+  body:
+    type: json
+    data: |-
+      {
+        "alertName": "AAPL_Price",
+        "alertMessage": "AAPL Price Drop!",
+        "alertRepeatable": 0,
+        "email": "juan.noguera@ntec.es",
+        "expireTime": "20261231-12:00:00",
+        "iTWSOrdersOnly": 0,
+        "outsideRth": 0,
+        "sendMessage": 1,
+        "showPopup": 1,
+        "tif": "GTC",
+        "conditions": [
+          {
+            "conidex": 265598,
+            "logicBind": "a", 
+            "operator": "<=",
+            "timeZone": "US/Eastern",
+            "triggerMethod": "0",
+            "type": 1,
+            "value": "200"
+          }
+        ]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

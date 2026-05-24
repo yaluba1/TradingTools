@@ -1,0 +1,22 @@
+info:
+  name: Search Instrument by Symbol
+  type: http
+  seq: 11
+
+http:
+  method: POST
+  url: https://localhost:{{gw_port}}/v1/api/iserver/secdef/search
+  body:
+    type: json
+    data: |-
+      {
+        "symbol": "ZIM",
+        "secType": "STK"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

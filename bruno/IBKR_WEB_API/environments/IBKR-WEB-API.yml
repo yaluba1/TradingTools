@@ -3,4 +3,4 @@ variables:
   - name: gw_port
     value: "5000"
   - name: accountId
-    value: DU12345
+    value: DU7126953

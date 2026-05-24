@@ -19,8 +19,8 @@ Usage
     # List all alerts for a specific account
     python -m tools.ibkr.ibkr_alerts list --account DU12345
 
-    # Create a new price-based alert
-    python -m tools.ibkr.ibkr_alerts create --account DU12345 --name "AAPL > 200" --message "AAPL is above 200" --conditions '[{"type":"price","conid":265598,"operator":">","value":"200"}]'
+    # Create a new price-based alert (conidex: 'conid@exchange')
+    python -m tools.ibkr.ibkr_alerts create --account DU12345 --name "AAPL > 200" --message "AAPL is above 200" --conditions '[{"type":"price","conidex":"265598@SMART","operator":">","value":"200"}]'
 
     # Delete an alert by ID
     python -m tools.ibkr.ibkr_alerts delete --account DU12345 --alert_id 12345678
@@ -48,7 +48,13 @@ Detailed Command Reference
        * ``--account``: Target account ID (Required)
        * ``--name``: A descriptive name for the alert (Required)
        * ``--message``: The notification message text (Required)
-       * ``--conditions``: JSON string of alert conditions (Required)
+       * ``--conditions``: JSON string of alert conditions (Required).
+         Each condition object supports:
+         
+         - ``type``: Integer code (1: Price, 3: Time, etc.) or string alias ('price', 'volume').
+         - ``conidex``: Contract ID and exchange ('265598@SMART'). Alternatively, provide ``conid`` and optionally ``exchange``.
+         - ``operator``: Comparison operator ('>', '<=', etc.)
+         - ``value``: Target trigger value.
        * ``--repeatable``: 1 to allow repeating, 0 otherwise
        * ``--tif``: Time-in-Force (GTC or GTD)
        * ``--expire_time``: Required if tif is GTD (YYYYMMDD-HH:mm:ss)

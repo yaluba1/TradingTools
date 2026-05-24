@@ -1,0 +1,23 @@
+info:
+  name: Search Contract Rules
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: https://localhost:{{gw_port}}/v1/api/iserver/contract/rules
+  body:
+    type: json
+    data: |-
+      {
+        "conid": 468091282,
+        "isBuy": true,
+        "modifyOrder": false
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
