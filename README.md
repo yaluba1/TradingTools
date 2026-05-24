@@ -17,7 +17,14 @@ The following tools are available under the `tools/ibkr/` package:
 
 - **`ibkr_accounts`**: List accounts, retrieve PnL, sub-accounts, and account ownership information.
 - **`ibkr_alerts`**: Create, modify, and delete price, margin, and volume alerts.
-- **`ibkr_contract`**: Search for instrument details, market rules, and option strikes via Contract IDs (Conids).
+- **`ibkr_contract`**: Complete instrument discovery, details, definitions, and rules engine. Fully upgraded to support version 2 Web API endpoints:
+  * **Security Search**: Post/Get queries for security matching.
+  * **Strikes & Schedules**: Get available option chain strikes and ConID/symbol trading schedules.
+  * **Contract & Market Rules**: Query trade/size limits, algorithms eligibility, order defaults, and TIFs.
+  * **Algorithmic Execution**: Retrieve available execution strategies (VWAP, TWAP, Adaptive, etc.) for a contract.
+  * **FX Discovery**: Look up currency pairs and fetch real-time exchange rates.
+  * **Bonds & Derivatives**: Search bond filter lists and retrieve future chains by symbol.
+  * **ConID Registry**: List all stock ConIDs on specific exchanges, resolve stock symbols, and fetch complete security definitions.
 - **`ibkr_orders`**: Complete order execution lifecycle, including placement, modification, status monitoring, and answering system questions.
 - **`ibkr_portfolio`**: Real-time holdings analysis, account ledgers, and historical performance analysis via Portfolio Analyst.
 - **`ibkr_scanner`**: High-performance market discovery using customizable instruments, locations, and criteria.
@@ -42,7 +49,7 @@ This file configures the connection to the IBKR Client Portal Gateway and genera
 
 ```yaml
 api:
-  base_url: "https://localhost:5001/v1/api/" # Base URL of your IBKR Gateway
+  base_url: "https://localhost:5000/v1/api/" # Base URL of your IBKR Gateway
   verify_ssl: false # Set to true if using valid SSL certs
   timeout_seconds: 30 # API request timeout
 logging:
