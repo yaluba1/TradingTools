@@ -30,6 +30,11 @@ def main():
     * **futures**: Search for non-expired futures by symbol.
     * **secdef**: Fetch detailed security definitions for a list of ConIDs.
     * **stocks**: Query stock definitions and ConIDs by symbol.
+    * **forecast-categories**: List Event Contract Forecast categories and underlying markets.
+    * **forecast-details**: Retrieve details for a specific forecast contract outcome ConID.
+    * **forecast-market**: Query all contracts under an underlying market ConID.
+    * **forecast-rules**: Retrieve trading rules for a forecast contract ConID.
+    * **forecast-schedules**: Retrieve trading schedule for a forecast contract ConID.
     """
     parser = argparse.ArgumentParser(description="IBKR Contract Tool")
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
@@ -123,6 +128,25 @@ def main():
     stocks_parser = subparsers.add_parser("stocks", help="Get stocks by symbols")
     stocks_parser.add_argument("--symbols", required=True, help="Comma-separated symbols")
 
+    # Forecast-categories subcommand
+    fc_parser = subparsers.add_parser("forecast-categories", help="List forecast categories and markets")
+
+    # Forecast-details subcommand
+    fd_parser = subparsers.add_parser("forecast-details", help="Get details for forecast contract")
+    fd_parser.add_argument("--conid", required=True, type=int, help="Contract outcome ConID")
+
+    # Forecast-market subcommand
+    fm_parser = subparsers.add_parser("forecast-market", help="Get contracts for underlying market")
+    fm_parser.add_argument("--underlying-conid", required=True, type=int, help="Underlying market ConID")
+
+    # Forecast-rules subcommand
+    fr_parser = subparsers.add_parser("forecast-rules", help="Get rules for forecast contract")
+    fr_parser.add_argument("--conid", required=True, type=int, help="Contract outcome ConID")
+
+    # Forecast-schedules subcommand
+    fs_parser = subparsers.add_parser("forecast-schedules", help="Get trading schedule for forecast contract")
+    fs_parser.add_argument("--conid", required=True, type=int, help="Contract outcome ConID")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -209,6 +233,26 @@ def main():
 
         elif args.command == "stocks":
             result = manager.search_stocks_by_symbol(args.symbols)
+            print(json.dumps(result.model_dump(), indent=2))
+
+        elif args.command == "forecast-categories":
+            result = manager.get_forecast_categories()
+            print(json.dumps(result.model_dump(), indent=2))
+
+        elif args.command == "forecast-details":
+            result = manager.get_forecast_contract_details(args.conid)
+            print(json.dumps(result.model_dump(), indent=2))
+
+        elif args.command == "forecast-market":
+            result = manager.get_forecast_market(args.underlying_conid)
+            print(json.dumps(result.model_dump(), indent=2))
+
+        elif args.command == "forecast-rules":
+            result = manager.get_forecast_rules(args.conid)
+            print(json.dumps(result.model_dump(), indent=2))
+
+        elif args.command == "forecast-schedules":
+            result = manager.get_forecast_schedules(args.conid)
             print(json.dumps(result.model_dump(), indent=2))
             
     except Exception as e:

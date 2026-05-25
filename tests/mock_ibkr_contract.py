@@ -254,6 +254,106 @@ class TestIBKRContract(unittest.TestCase):
         self.assertEqual(res.root["AAPL"][0].conid, 265598)
         self.mock_client.get.assert_called_with("/trsrv/stocks", params={"symbols": "AAPL"})
 
+    def test_get_forecast_categories(self):
+        """Test retrieving forecast category tree."""
+        self.mock_client.get.return_value = {
+            "categories": {
+                "politics": {
+                    "name": "Politics",
+                    "parent_id": "root",
+                    "is_restricted": False,
+                    "markets": [
+                        {
+                            "name": "US Presidential Election",
+                            "symbol": "PRES.ELECTION",
+                            "exchange": "FORECAST",
+                            "is_restricted": False,
+                            "conid": 848765505,
+                            "product_conid": 848765506
+                        }
+                    ]
+                }
+            }
+        }
+        res = self.manager.get_forecast_categories()
+        self.assertIn("politics", res.categories)
+        self.assertEqual(res.categories["politics"].name, "Politics")
+        self.assertEqual(res.categories["politics"].markets[0].conid, 848765505)
+        self.mock_client.get.assert_called_with("/forecast/category/tree")
+
+    def test_get_forecast_contract_details(self):
+        """Test retrieving forecast contract details."""
+        self.mock_client.get.return_value = {
+            "conid_yes": 849540484,
+            "conid_no": 849540485,
+            "question": "Will Jeff Crank win?",
+            "side": "Y",
+            "strike": 0.5,
+            "exchange": "FORECAST",
+            "expiration": "20261103",
+            "symbol": "CRANK.WIN"
+        }
+        res = self.manager.get_forecast_contract_details(849540484)
+        self.assertEqual(res.conid_yes, 849540484)
+        self.assertEqual(res.question, "Will Jeff Crank win?")
+        self.mock_client.get.assert_called_with("/forecast/contract/details", params={"conid": 849540484})
+
+    def test_get_forecast_market(self):
+        """Test retrieving forecast market outcomes."""
+        self.mock_client.get.return_value = {
+            "market_name": "US Presidential Election",
+            "exchange": "FORECAST",
+            "symbol": "PRES.ELECTION",
+            "contracts": [
+                {
+                    "conid": 849540484,
+                    "side": "Y",
+                    "expiration": "20261103",
+                    "strike": 0.5,
+                    "underlying_conid": 848765505
+                }
+            ]
+        }
+        res = self.manager.get_forecast_market(848765505)
+        self.assertEqual(res.market_name, "US Presidential Election")
+        self.assertEqual(res.contracts[0].conid, 849540484)
+        self.mock_client.get.assert_called_with("/forecast/contract/market", params={"underlyingConid": 848765505})
+
+    def test_get_forecast_rules(self):
+        """Test retrieving forecast contract trading rules."""
+        self.mock_client.get.return_value = {
+            "asset_class": "FORECAST",
+            "description": "Election outcome rules",
+            "market_name": "US Presidential Election",
+            "measured_period": "2026 Election",
+            "source_agency": "FEC",
+            "price_increments": [
+                {"lower_edge": "0.0", "increment": "0.01"}
+            ]
+        }
+        res = self.manager.get_forecast_rules(849540484)
+        self.assertEqual(res.asset_class, "FORECAST")
+        self.assertEqual(res.price_increments[0].increment, "0.01")
+        self.mock_client.get.assert_called_with("/forecast/contract/rules", params={"conid": 849540484})
+
+    def test_get_forecast_schedules(self):
+        """Test retrieving forecast trading schedules."""
+        self.mock_client.get.return_value = {
+            "timezone": "America/New_York",
+            "trading_schedules": [
+                {
+                    "day_of_week": "Monday",
+                    "trading_times": [
+                        {"open": "0900", "close": "1700"}
+                    ]
+                }
+            ]
+        }
+        res = self.manager.get_forecast_schedules(849540484)
+        self.assertEqual(res.timezone, "America/New_York")
+        self.assertEqual(res.trading_schedules[0].day_of_week, "Monday")
+        self.mock_client.get.assert_called_with("/forecast/contract/schedules", params={"conid": 849540484})
+
 
 class TestIBKRContractCLI(unittest.TestCase):
     """
@@ -410,6 +510,51 @@ class TestIBKRContractCLI(unittest.TestCase):
         with patch('sys.argv', ['ibkr_contract', 'stocks', '--symbols', 'AAPL']):
             main()
             self.manager_instance.search_stocks_by_symbol.assert_called_with('AAPL')
+
+    def test_cli_forecast_categories(self):
+        from tools.ibkr.ibkr_contract.cli import main
+        mock_res = MagicMock()
+        mock_res.model_dump.return_value = {}
+        self.manager_instance.get_forecast_categories.return_value = mock_res
+        with patch('sys.argv', ['ibkr_contract', 'forecast-categories']):
+            main()
+            self.manager_instance.get_forecast_categories.assert_called_once()
+
+    def test_cli_forecast_details(self):
+        from tools.ibkr.ibkr_contract.cli import main
+        mock_res = MagicMock()
+        mock_res.model_dump.return_value = {}
+        self.manager_instance.get_forecast_contract_details.return_value = mock_res
+        with patch('sys.argv', ['ibkr_contract', 'forecast-details', '--conid', '849540484']):
+            main()
+            self.manager_instance.get_forecast_contract_details.assert_called_with(849540484)
+
+    def test_cli_forecast_market(self):
+        from tools.ibkr.ibkr_contract.cli import main
+        mock_res = MagicMock()
+        mock_res.model_dump.return_value = {}
+        self.manager_instance.get_forecast_market.return_value = mock_res
+        with patch('sys.argv', ['ibkr_contract', 'forecast-market', '--underlying-conid', '848765505']):
+            main()
+            self.manager_instance.get_forecast_market.assert_called_with(848765505)
+
+    def test_cli_forecast_rules(self):
+        from tools.ibkr.ibkr_contract.cli import main
+        mock_res = MagicMock()
+        mock_res.model_dump.return_value = {}
+        self.manager_instance.get_forecast_rules.return_value = mock_res
+        with patch('sys.argv', ['ibkr_contract', 'forecast-rules', '--conid', '849540484']):
+            main()
+            self.manager_instance.get_forecast_rules.assert_called_with(849540484)
+
+    def test_cli_forecast_schedules(self):
+        from tools.ibkr.ibkr_contract.cli import main
+        mock_res = MagicMock()
+        mock_res.model_dump.return_value = {}
+        self.manager_instance.get_forecast_schedules.return_value = mock_res
+        with patch('sys.argv', ['ibkr_contract', 'forecast-schedules', '--conid', '849540484']):
+            main()
+            self.manager_instance.get_forecast_schedules.assert_called_with(849540484)
 
 if __name__ == "__main__":
     unittest.main()

@@ -13,6 +13,7 @@ Features
 - **Trading Algos**: Fetch supported execution algorithms for specific contracts.
 - **Currency Details**: Query exchange rates and active currency trading pairs.
 - **Exchanges & Futures**: List stock ConIDs by exchange, resolve futures chains, and batch query security definitions.
+- **Event Contracts (Forecast)**: List categories, query outcome details, underlying markets, rule parameters, and weekly trading schedules.
 
 Usage
 -----
@@ -66,6 +67,21 @@ Usage
 
     # Search stocks by symbol list
     python -m tools.ibkr.ibkr_contract stocks --symbols AAPL,IBM
+
+    # List forecast categories and underlying markets
+    python -m tools.ibkr.ibkr_contract forecast-categories
+
+    # Get detailed attributes of a specific forecast outcome contract
+    python -m tools.ibkr.ibkr_contract forecast-details --conid 849540484
+
+    # Query all outcomes for an underlying market
+    python -m tools.ibkr.ibkr_contract forecast-market --underlying-conid 848765505
+
+    # Retrieve rules and price increments for a forecast contract
+    python -m tools.ibkr.ibkr_contract forecast-rules --conid 849540484
+
+    # View trading schedules for a forecast contract
+    python -m tools.ibkr.ibkr_contract forecast-schedules --conid 849540484
 
 Detailed Command Reference
 --------------------------
@@ -165,6 +181,26 @@ Detailed Command Reference
      - **Search stocks by symbols.**
        
        * ``--symbols``: Comma-separated stock symbols (Required)
+   * - ``forecast-categories``
+     - **List forecast categories.**
+       
+       Lists all Event Contract Forecast categories, subcategories, and underlying markets/ConIDs.
+   * - ``forecast-details``
+     - **Get detailed forecast contract outcomes.**
+       
+       * ``--conid``: The contract outcome ID (Required)
+   * - ``forecast-market``
+     - **Get contracts under underlying market.**
+       
+       * ``--underlying-conid``: The underlying market ConID (Required)
+   * - ``forecast-rules``
+     - **Get rules for a forecast contract.**
+       
+       * ``--conid``: The contract outcome ID (Required)
+   * - ``forecast-schedules``
+     - **Get weekly schedules for a forecast contract.**
+       
+       * ``--conid``: The contract outcome ID (Required)
 
 Submodules
 ----------

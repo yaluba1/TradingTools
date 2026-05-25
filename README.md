@@ -25,6 +25,7 @@ The following tools are available under the `tools/ibkr/` package:
   * **FX Discovery**: Look up currency pairs and fetch real-time exchange rates.
   * **Bonds & Derivatives**: Search bond filter lists and retrieve future chains by symbol.
   * **ConID Registry**: List all stock ConIDs on specific exchanges, resolve stock symbols, and fetch complete security definitions.
+  * **Event Contracts (Forecast)**: Fully supports prediction market contracts with category trees, contract outcome specifications, underlying market chains, rules, and weekly schedules.
 - **`ibkr_orders`**: Complete order execution lifecycle, including placement, modification, status monitoring, and answering system questions.
 - **`ibkr_portfolio`**: Real-time holdings analysis, account ledgers, and historical performance analysis via Portfolio Analyst.
 - **`ibkr_scanner`**: High-performance market discovery using customizable instruments, locations, and criteria.

@@ -22,7 +22,12 @@ from ..schemas.contract_schemas import (
     AllConidsResponse,
     FuturesResponse,
     TrsrvSecdefResponse,
-    StocksResponse
+    StocksResponse,
+    ForecastCategoryTreeResponse,
+    ForecastContractDetail,
+    ForecastMarketResponse,
+    ForecastRulesResponse,
+    ForecastSchedulesResponse
 )
 
 class ContractManager:
@@ -519,4 +524,133 @@ class ContractManager:
             return response
         except Exception as e:
             self.logger.error(f"Failed to fetch stocks for symbols {symbols}: {e}")
+            raise
+
+    def get_forecast_categories(self) -> ForecastCategoryTreeResponse:
+        """
+        Retrieve all Event Contract Forecast categories and underlying markets.
+        
+        Returns:
+            ForecastCategoryTreeResponse: Validated forecast categories tree.
+        """
+        self.logger.info("Fetching forecast category tree")
+        endpoint = "/forecast/category/tree"
+        try:
+            data = self.client.get(endpoint)
+            # Make sure we wrap dict into categories if returned as top-level dict
+            if isinstance(data, dict) and "categories" not in data:
+                data = {"categories": data}
+            response = ForecastCategoryTreeResponse(**data)
+            self.logger.log_action(
+                "get_forecast_categories",
+                message="Retrieved forecast category tree.",
+                details={"category_count": len(response.categories) if response.categories else 0}
+            )
+            return response
+        except Exception as e:
+            self.logger.error(f"Failed to fetch forecast category tree: {e}")
+            raise
+
+    def get_forecast_contract_details(self, conid: int) -> ForecastContractDetail:
+        """
+        Retrieve detailed attributes for a specific forecast contract.
+        
+        Args:
+            conid (int): The contract outcome ID.
+            
+        Returns:
+            ForecastContractDetail: Validated detailed contract info.
+        """
+        self.logger.info(f"Fetching forecast contract details for conid: {conid}")
+        endpoint = "/forecast/contract/details"
+        params = {"conid": conid}
+        try:
+            data = self.client.get(endpoint, params=params)
+            response = ForecastContractDetail(**data)
+            self.logger.log_action(
+                "get_forecast_contract_details",
+                message=f"Retrieved forecast contract details for conid {conid}.",
+                details={"conid": conid, "symbol": response.symbol}
+            )
+            return response
+        except Exception as e:
+            self.logger.error(f"Failed to fetch forecast contract details for conid {conid}: {e}")
+            raise
+
+    def get_forecast_market(self, underlyingConid: int) -> ForecastMarketResponse:
+        """
+        Retrieve all contracts for a given underlying market ConID.
+        
+        Args:
+            underlyingConid (int): The underlying market ConID.
+            
+        Returns:
+            ForecastMarketResponse: Validated underlying market contracts.
+        """
+        self.logger.info(f"Fetching forecast market contracts for underlying conid: {underlyingConid}")
+        endpoint = "/forecast/contract/market"
+        params = {"underlyingConid": underlyingConid}
+        try:
+            data = self.client.get(endpoint, params=params)
+            response = ForecastMarketResponse(**data)
+            self.logger.log_action(
+                "get_forecast_market",
+                message=f"Retrieved forecast market contracts for underlying conid {underlyingConid}.",
+                details={"underlyingConid": underlyingConid, "contract_count": len(response.contracts) if response.contracts else 0}
+            )
+            return response
+        except Exception as e:
+            self.logger.error(f"Failed to fetch forecast market contracts for underlying conid {underlyingConid}: {e}")
+            raise
+
+    def get_forecast_rules(self, conid: int) -> ForecastRulesResponse:
+        """
+        Retrieve trading terms and rules for a forecast contract.
+        
+        Args:
+            conid (int): The contract outcome ID.
+            
+        Returns:
+            ForecastRulesResponse: Validated forecast contract rules.
+        """
+        self.logger.info(f"Fetching forecast rules for conid: {conid}")
+        endpoint = "/forecast/contract/rules"
+        params = {"conid": conid}
+        try:
+            data = self.client.get(endpoint, params=params)
+            response = ForecastRulesResponse(**data)
+            self.logger.log_action(
+                "get_forecast_rules",
+                message=f"Retrieved forecast rules for conid {conid}.",
+                details={"conid": conid}
+            )
+            return response
+        except Exception as e:
+            self.logger.error(f"Failed to fetch forecast rules for conid {conid}: {e}")
+            raise
+
+    def get_forecast_schedules(self, conid: int) -> ForecastSchedulesResponse:
+        """
+        Retrieve trading schedules for a forecast contract.
+        
+        Args:
+            conid (int): The contract outcome ID.
+            
+        Returns:
+            ForecastSchedulesResponse: Validated trading schedules.
+        """
+        self.logger.info(f"Fetching forecast schedules for conid: {conid}")
+        endpoint = "/forecast/contract/schedules"
+        params = {"conid": conid}
+        try:
+            data = self.client.get(endpoint, params=params)
+            response = ForecastSchedulesResponse(**data)
+            self.logger.log_action(
+                "get_forecast_schedules",
+                message=f"Retrieved forecast schedules for conid {conid}.",
+                details={"conid": conid}
+            )
+            return response
+        except Exception as e:
+            self.logger.error(f"Failed to fetch forecast schedules for conid {conid}: {e}")
             raise

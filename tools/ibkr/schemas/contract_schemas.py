@@ -276,6 +276,144 @@ class StockInfo(BaseModel):
 
 class StocksResponse(RootModel):
     """
-    Validation schema for response from /trsrv/stocks, keyed by symbol.
+    Validation schema for the dict response from /trsrv/stocks, keyed by symbol.
     """
     root: Dict[str, List[StockInfo]]
+
+# --- Event Contracts (Forecast) schemas ---
+
+class ForecastMarketItem(BaseModel):
+    """
+    Validation schema for a single market inside a category tree branch.
+    """
+    name: Optional[str] = Field(None, description="Name of the underlying market")
+    symbol: Optional[str] = Field(None, description="Symbol")
+    exchange: Optional[str] = Field(None, description="Listing exchange")
+    is_restricted: Optional[bool] = Field(None, description="Is restricted flag")
+    conid: Optional[Union[int, str]] = Field(None, description="Underlying ConID")
+    product_conid: Optional[Union[int, str]] = Field(None, description="Product ConID")
+    model_config = {"extra": "allow"}
+
+class ForecastCategoryItem(BaseModel):
+    """
+    Validation schema for a single category branch in categories tree.
+    """
+    name: Optional[str] = Field(None, description="Category name")
+    parent_id: Optional[str] = Field(None, description="Parent category ID")
+    is_restricted: Optional[bool] = Field(None, description="Is restricted flag")
+    markets: Optional[List[ForecastMarketItem]] = Field(default=[], description="Underlying markets")
+    model_config = {"extra": "allow"}
+
+class ForecastCategoryTreeResponse(BaseModel):
+    """
+    Validation schema for categories tree response from /forecast/category/tree.
+    """
+    categories: Optional[Dict[str, ForecastCategoryItem]] = Field(default={}, description="Forecast categories tree map")
+    model_config = {"extra": "allow"}
+
+class ForecastContractDetail(BaseModel):
+    """
+    Validation schema for forecast contract details response from /forecast/contract/details.
+    """
+    conid_yes: Optional[Union[int, str]] = Field(None, description="ConID for the 'Yes' outcome")
+    conid_no: Optional[Union[int, str]] = Field(None, description="ConID for the 'No' outcome")
+    question: Optional[str] = Field(None, description="Contract question details")
+    side: Optional[str] = Field(None, description="Outcome side ('Y' or 'N')")
+    strike_label: Optional[str] = Field(None, description="Strike threshold label")
+    strike: Optional[float] = Field(None, description="Strike value")
+    exchange: Optional[str] = Field(None, description="Listing exchange")
+    expiration: Optional[str] = Field(None, description="Expiration date YYYYMMDD")
+    symbol: Optional[str] = Field(None, description="Contract ticker symbol")
+    category: Optional[str] = Field(None, description="Category identifier")
+    logo_category: Optional[str] = Field(None, description="Logo category identifier")
+    measured_period: Optional[str] = Field(None, description="Period of measurement")
+    market_name: Optional[str] = Field(None, description="Market name")
+    underlying_conid: Optional[Union[int, str]] = Field(None, description="Underlying market ConID")
+    payout: Optional[float] = Field(None, description="Contract payout multiplier")
+    product_conid: Optional[Union[int, str]] = Field(None, description="Product ConID")
+    party: Optional[str] = Field(None, description="Associated political party or label")
+    is_restricted: Optional[bool] = Field(None, description="Is restricted flag")
+    model_config = {"extra": "allow"}
+
+class ForecastMarketContract(BaseModel):
+    """
+    Validation schema for a specific contract trading within an underlying market.
+    """
+    conid: Optional[Union[int, str]] = Field(None, description="Contract outcome ConID")
+    side: Optional[str] = Field(None, description="Outcome side ('Y' or 'N')")
+    expiration: Optional[str] = Field(None, description="Expiration date YYYYMMDD")
+    strike: Optional[float] = Field(None, description="Strike threshold value")
+    strike_label: Optional[str] = Field(None, description="Strike threshold label")
+    expiry_label: Optional[str] = Field(None, description="Expiry label")
+    underlying_conid: Optional[Union[int, str]] = Field(None, description="Underlying ConID")
+    time_specifier: Optional[str] = Field(None, description="Trading time specifier")
+    party: Optional[str] = Field(None, description="Political party label")
+    model_config = {"extra": "allow"}
+
+class ForecastMarketResponse(BaseModel):
+    """
+    Validation schema for forecast underlying market response from /forecast/contract/market.
+    """
+    market_name: Optional[str] = Field(None, description="Market name")
+    exchange: Optional[str] = Field(None, description="Listing exchange")
+    symbol: Optional[str] = Field(None, description="Ticker symbol")
+    logo_category: Optional[str] = Field(None, description="Logo category")
+    exclude_historical_data: Optional[bool] = Field(None, description="Exclude historical data flag")
+    payout: Optional[float] = Field(None, description="Payout value")
+    contracts: Optional[List[ForecastMarketContract]] = Field(default=[], description="List of trade outcomes")
+    model_config = {"extra": "allow"}
+
+class ForecastPriceIncrement(BaseModel):
+    """
+    Validation schema for price increment step inside rules.
+    """
+    lower_edge: Optional[str] = Field(None, description="Lower edge value")
+    increment: Optional[str] = Field(None, description="Price increment value")
+    model_config = {"extra": "allow"}
+
+class ForecastRulesResponse(BaseModel):
+    """
+    Validation schema for forecast rules response from /forecast/contract/rules.
+    """
+    asset_class: Optional[str] = Field(None, description="Asset class")
+    description: Optional[str] = Field(None, description="Rule description")
+    market_name: Optional[str] = Field(None, description="Market name")
+    measured_period: Optional[str] = Field(None, description="Period of measurement")
+    threshold: Optional[str] = Field(None, description="Rule threshold label")
+    source_agency: Optional[str] = Field(None, description="Data source agency")
+    data_and_resolution_link: Optional[str] = Field(None, description="Source resolution link")
+    last_trade_time: Optional[int] = Field(None, description="Last trade time stamp")
+    product_code: Optional[str] = Field(None, description="Product code")
+    market_rules_link: Optional[str] = Field(None, description="Market rules PDF link")
+    release_time: Optional[int] = Field(None, description="Release timestamp")
+    payout_time: Optional[int] = Field(None, description="Payout timestamp")
+    payout: Optional[str] = Field(None, description="Payout amount string")
+    price_increment: Optional[str] = Field(None, description="Increment price string")
+    price_increments: Optional[List[ForecastPriceIncrement]] = Field(default=[], description="List of increments")
+    exchange_timezone: Optional[str] = Field(None, description="Exchange timezone")
+    model_config = {"extra": "allow"}
+
+class ForecastTradingTime(BaseModel):
+    """
+    Validation schema for a single opening/closing time slot inside a schedule.
+    """
+    open: Optional[str] = Field(None, description="Opening session time")
+    close: Optional[str] = Field(None, description="Closing session time")
+    model_config = {"extra": "allow"}
+
+class ForecastTradingSchedule(BaseModel):
+    """
+    Validation schema for a daily forecast schedule.
+    """
+    day_of_week: Optional[str] = Field(None, description="Day of the week")
+    trading_times: Optional[List[ForecastTradingTime]] = Field(default=[], description="Daily session hours")
+    model_config = {"extra": "allow"}
+
+class ForecastSchedulesResponse(BaseModel):
+    """
+    Validation schema for forecast schedules response from /forecast/contract/schedules.
+    """
+    timezone: Optional[str] = Field(None, description="Timezone name")
+    trading_schedules: Optional[List[ForecastTradingSchedule]] = Field(default=[], description="Weekly schedule lists")
+    model_config = {"extra": "allow"}
+
