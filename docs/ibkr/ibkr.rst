@@ -16,6 +16,7 @@ Subpackages
    ibkr.ibkr_session
    ibkr.ibkr_scanner
    ibkr.ibkr_watchlist
+   ibkr.ibkr_marketdata
    ibkr.schemas
 
 Module contents

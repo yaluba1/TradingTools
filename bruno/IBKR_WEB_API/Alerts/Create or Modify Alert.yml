@@ -6,13 +6,17 @@ info:
 http:
   method: POST
   url: https://localhost:{{gw_port}}/v1/api/iserver/account/{{accountId}}/alert
+  headers:
+    - name: User-Agent
+      value: Console
   body:
     type: json
     data: |-
       {
-        "alertName": "AAPL_Price",
-        "alertMessage": "AAPL Price Drop!",
+        "alertName": "USD_EUR",
+        "alertMessage": "USD to EUR cross",
         "alertRepeatable": 0,
+        "toolId": 1,
         "email": "juan.noguera@ntec.es",
         "expireTime": "20261231-12:00:00",
         "iTWSOrdersOnly": 0,
@@ -22,13 +26,13 @@ http:
         "tif": "GTC",
         "conditions": [
           {
-            "conidex": 265598,
-            "logicBind": "a", 
-            "operator": "<=",
+            "conidex": "12087792",
+            "logicBind": "a",
+            "operator": ">=",
             "timeZone": "US/Eastern",
             "triggerMethod": "0",
-            "type": 1,
-            "value": "200"
+            "type": 5,
+            "value": "100"
           }
         ]
       }

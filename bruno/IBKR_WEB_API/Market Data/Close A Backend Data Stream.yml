@@ -1,0 +1,21 @@
+info:
+  name: Close A Backend Data Stream
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: https://localhost:{{gw_port}}/v1/api/iserver/marketdata/unsubscribe
+  body:
+    type: json
+    data: |-
+      {
+        "conid": 468091282
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -1,0 +1,22 @@
+info:
+  name: Live Market Data Snapshot
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: https://localhost:{{gw_port}}/v1/api/iserver/marketdata/snaphot?conids=468091282&fields="31","74"
+  params:
+    - name: conids
+      value: "468091282"
+      type: query
+    - name: fields
+      value: '"31","74"'
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

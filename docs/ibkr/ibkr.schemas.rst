@@ -36,6 +36,14 @@ ibkr.schemas.order\_schemas module
    :show-inheritance:
    :undoc-members:
 
+ibkr.schemas.marketdata\_schemas module
+---------------------------------------
+
+.. automodule:: ibkr.schemas.marketdata_schemas
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 Module contents
 ---------------
 

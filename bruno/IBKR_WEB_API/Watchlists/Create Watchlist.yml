@@ -1,0 +1,27 @@
+info:
+  name: Create Watchlist
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: https://localhost:{{gw_port}}/v1/api/iserver/watchlist
+  body:
+    type: json
+    data: |-
+      {
+        "id": "1000",
+        "name": "Test WL 2",
+        "rows": [
+          {
+            "C": "468091282"
+          }
+        ]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

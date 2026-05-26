@@ -5,10 +5,10 @@ info:
 
 http:
   method: GET
-  url: https://localhost:{{gw_port}}/v1/api/forecast/contract/schedules?conid=848765505
+  url: https://localhost:{{gw_port}}/v1/api/forecast/contract/schedules?conid=849540484
   params:
     - name: conid
-      value: "848765505"
+      value: "849540484"
       type: query
   auth: inherit
 
