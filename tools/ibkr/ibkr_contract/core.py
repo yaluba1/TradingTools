@@ -48,7 +48,7 @@ class ContractManager:
         self.client = IBKRClient(self.tool_name)
         self.logger = IBKRLogger(self.tool_name)
 
-    def search_contracts(self, symbol: str, secType: Optional[str] = None, name: Optional[bool] = None, more: Optional[bool] = None, referrer: Optional[str] = None) -> ContractSearchResponse:
+    def search_contracts(self, symbol: str, secType: Optional[str] = None, name: Optional[bool] = None, referrer: Optional[str] = None) -> ContractSearchResponse:
         """
         Search for a security definition by symbol.
         
@@ -56,7 +56,6 @@ class ContractManager:
             symbol (str): The ticker symbol to search for (e.g., 'AAPL').
             secType (Optional[str]): Asset class filter (e.g., STK, OPT, FUT).
             name (Optional[bool]): If True, search will also look in company name.
-            more (Optional[bool]): If True, returns more results.
             referrer (Optional[str]): Referrer source.
             
         Returns:
@@ -69,8 +68,6 @@ class ContractManager:
             payload["secType"] = secType
         if name is not None:
             payload["name"] = name
-        if more is not None:
-            payload["more"] = more
         if referrer is not None:
             payload["referrer"] = referrer
 

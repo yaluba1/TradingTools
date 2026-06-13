@@ -1,0 +1,15 @@
+info:
+  name: Reset Order Reply Messages Suppression
+  type: http
+  seq: 10
+
+http:
+  method: POST
+  url: https://localhost:{{gw_port}}/v1/api/iserver/questions/suppress/reset
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -1,0 +1,20 @@
+info:
+  name: Cancel Order
+  type: http
+  seq: 5
+
+http:
+  method: DELETE
+  url: https://localhost:{{gw_port}}/v1/api/iserver/account/{{accountId}}/order/{{orderId}}
+  auth: inherit
+
+runtime:
+  variables:
+    - name: orderId
+      value: "761318694"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

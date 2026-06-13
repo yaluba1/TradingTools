@@ -3,6 +3,7 @@ Pydantic schemas for the IBKR Contract tool.
 This module defines the validation models for contract-related data
 as specified in the Interactive Brokers Client Portal API documentation.
 """
+from __future__ import annotations
 from pydantic import BaseModel, Field, RootModel
 from typing import List, Optional, Dict, Any, Union
 

@@ -108,13 +108,17 @@ class IBKRClient:
             self.logger.error(f"Failed to check authentication status: {e}")
             return False
 
-    def initialize_brokerage_session(self):
+    def initialize_brokerage_session(self, publish: bool = True, compete: bool = True):
         """
         Request initialization of the brokerage session via the Gateway.
         This is required for all /iserver endpoints that need trading permissions.
+
+        Args:
+            publish (bool): If true, the session is published to the broker. Defaults to True.
+            compete (bool): If true, other sessions are competed/disconnected. Defaults to True.
         """
         try:
-            self._request("POST", "/iserver/auth/ssodh/init")
+            self._request("POST", "/iserver/auth/ssodh/init", json={"publish": publish, "compete": compete})
             self.logger.info("Brokerage session initialization command sent to Gateway.")
         except Exception as e:
             self.logger.error(f"Failed to initialize brokerage session: {e}")

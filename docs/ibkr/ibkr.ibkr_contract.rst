@@ -21,7 +21,7 @@ Usage
 .. code-block:: bash
 
     # Search for a contract by symbol (with asset class filter)
-    python -m tools.ibkr.ibkr_contract search --symbol AAPL --sectype STK --name --more
+    python -m tools.ibkr.ibkr_contract search --symbol AAPL --sectype STK --name
 
     # Get detailed contract info
     python -m tools.ibkr.ibkr_contract details --conid 265598 --exchange SMART
@@ -98,7 +98,6 @@ Detailed Command Reference
        * ``--symbol``: Ticker symbol to search for (Required)
        * ``--sectype``: Asset class filter (e.g. STK, OPT)
        * ``--name``: Boolean flag to search in company name
-       * ``--more``: Boolean flag to return more results
        * ``--referrer``: Referrer system source
    * - ``details``
      - **Get contract details.**

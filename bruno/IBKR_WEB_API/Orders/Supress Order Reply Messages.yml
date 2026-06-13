@@ -1,0 +1,21 @@
+info:
+  name: Supress Order Reply Messages
+  type: http
+  seq: 9
+
+http:
+  method: POST
+  url: https://localhost:{{gw_port}}/v1/api/iserver/questions/suppress
+  body:
+    type: json
+    data: |-
+      { 
+        "messageIds": ["o163"]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -43,13 +43,19 @@ class TestIBKRPortfolio(unittest.TestCase):
     def test_get_summary(self):
         """Test retrieving portfolio summary."""
         self.mock_client.get.return_value = {
-            "accountsummaries": [
-                {"account": "U1234567", "key": "NetLiquidation", "value": "10000.0"}
-            ]
+            "netliquidation": {
+                "amount": 10000.0,
+                "currency": "USD",
+                "isNull": False,
+                "timestamp": 1781292741000,
+                "value": None,
+                "severity": 0
+            }
         }
         res = self.manager.get_summary("U1234567")
-        self.assertEqual(len(res.summary), 1)
-        self.assertEqual(res.summary[0].key, "NetLiquidation")
+        self.assertIn("netliquidation", res.summary)
+        self.assertEqual(res.summary["netliquidation"].amount, 10000.0)
+        self.assertEqual(res.summary["netliquidation"].currency, "USD")
         self.mock_client.get.assert_called_with("/portfolio/U1234567/summary")
 
     def test_get_ledger(self):
@@ -74,12 +80,32 @@ class TestIBKRPortfolio(unittest.TestCase):
         self.assertEqual(res.positions[0].conid, 265598)
         self.mock_client.get.assert_called_with("/portfolio/U1234567/positions/0")
 
+    def test_get_positions_nocache(self):
+        """Test retrieving near-real-time (uncached) positions."""
+        self.mock_client.get.return_value = [
+            {"acctId": "U1234567", "conid": 265598, "position": 100, "mktPrice": 150.0, 
+             "mktValue": 15000.0, "currency": "USD", "avgCost": 140.0}
+        ]
+        # Test default call (no query params)
+        res = self.manager.get_positions_nocache("U1234567")
+        self.assertEqual(len(res.positions), 1)
+        self.assertEqual(res.positions[0].conid, 265598)
+        self.mock_client.get.assert_called_with("/portfolio2/U1234567/positions", params={})
+
+        # Test with query parameters
+        res = self.manager.get_positions_nocache("U1234567", model="modelA", sort="position", direction="d")
+        self.assertEqual(len(res.positions), 1)
+        self.mock_client.get.assert_called_with(
+            "/portfolio2/U1234567/positions",
+            params={"model": "modelA", "sort": "position", "direction": "d"}
+        )
+
     def test_invalidate_positions(self):
         """Test invalidating positions cache."""
         self.mock_client.post.return_value = {"status": "ok"}
-        res = self.manager.invalidate_positions()
+        res = self.manager.invalidate_positions("U1234567")
         self.assertEqual(res["status"], "ok")
-        self.mock_client.post.assert_called_with("/portfolio/positions/invalidate")
+        self.mock_client.post.assert_called_with("/portfolio/U1234567/positions/invalidate")
 
     def test_get_allocation(self):
         """Test retrieving allocation data."""
@@ -93,17 +119,54 @@ class TestIBKRPortfolio(unittest.TestCase):
         self.assertEqual(res.assetClass[0].group, "Stocks")
         self.mock_client.get.assert_called_with("/portfolio/U1234567/allocation")
 
+    def test_get_allocation_new_format(self):
+        """Test retrieving allocation data in the new nested dictionary format."""
+        self.mock_client.get.return_value = {
+            "assetClass": {
+                "long": {"STK": 41252.15, "CASH": 262.64},
+                "short": {}
+            },
+            "sector": {
+                "long": {"Energy": 1260.02, "Technology": 25170.84},
+                "short": {}
+            },
+            "group": {
+                "long": {"Computers": 20382.80},
+                "short": {}
+            }
+        }
+        res = self.manager.get_allocation("U1234567")
+        self.assertIsNotNone(res.assetClass)
+        self.assertEqual(res.assetClass.long["STK"], 41252.15)
+        self.assertEqual(res.assetClass.long["CASH"], 262.64)
+        self.assertEqual(res.sector.long["Technology"], 25170.84)
+        self.assertEqual(res.group.long["Computers"], 20382.80)
+        self.assertIsNone(res.grouping)
+        self.mock_client.get.assert_called_with("/portfolio/U1234567/allocation")
+
     def test_get_performance(self):
         """Test retrieving PA performance data."""
         self.mock_client.post.return_value = {
             "id": "perf1",
             "nav": {"data": [{"v": 10000.0, "p": "2023-01-01"}]}
         }
-        res = self.manager.get_performance(["U1234567"], "D")
+        res = self.manager.get_performance(["U1234567"], "12M")
         self.assertEqual(res.id, "perf1")
         self.assertIsNotNone(res.nav)
         self.assertEqual(res.nav.data[0].val, 10000.0)
-        self.mock_client.post.assert_called()
+        self.mock_client.post.assert_called_with("/pa/performance", json_data={"acctIds": ["U1234567"], "period": "1Y"})
+
+    def test_get_performance_all_periods(self):
+        """Test retrieving PA performance data for all periods."""
+        self.mock_client.post.return_value = {
+            "id": "perf_all",
+            "nav": {"data": [{"v": 12000.0, "p": "2023-01-01"}]}
+        }
+        res = self.manager.get_performance_all_periods(["U1234567"])
+        self.assertEqual(res.id, "perf_all")
+        self.assertIsNotNone(res.nav)
+        self.assertEqual(res.nav.data[0].val, 12000.0)
+        self.mock_client.post.assert_called_with("/pa/allperiods", json_data={"acctIds": ["U1234567"]})
 
     def test_get_pa_summary(self):
         """Test retrieving PA summary data."""
@@ -117,10 +180,116 @@ class TestIBKRPortfolio(unittest.TestCase):
             {"acctid": "U1234567", "conid": 265598, "symbol": "AAPL", "side": "BUY", 
              "qty": 10, "pr": 150.0, "amt": 1500.0, "comm": 1.0, "date": "2023-01-01", "type": "TRADE"}
         ]
-        res = self.manager.get_transactions(["U1234567"], days=30)
+        res = self.manager.get_transactions(["U1234567"], [265598], "USD", days=30)
         self.assertEqual(len(res.transactions), 1)
         self.assertEqual(res.transactions[0].symbol, "AAPL")
-        self.mock_client.post.assert_called_with("/pa/transactions", json_data={"acctIds": ["U1234567"], "days": 30})
+        self.mock_client.post.assert_called_with("/pa/transactions", json_data={
+            "acctIds": ["U1234567"],
+            "conids": [265598],
+            "currency": "USD",
+            "days": 30
+        })
+
+    def test_list_subaccounts(self):
+        """Test retrieving portfolio sub-accounts."""
+        self.mock_client.get.return_value = [
+            {"id": "U7654321", "accountId": "U7654321", "displayName": "Sub-Account"}
+        ]
+        res = self.manager.list_subaccounts()
+        self.assertEqual(len(res.subaccounts), 1)
+        self.assertEqual(res.subaccounts[0].accountId, "U7654321")
+        self.mock_client.get.assert_called_with("/portfolio/subaccounts")
+
+    def test_get_positions_by_conid(self):
+        """Test retrieving all account positions in an instrument conid."""
+        self.mock_client.get.return_value = {
+            "U1234567": [
+                {"acctId": "U1234567", "conid": 265598, "position": 100, "mktPrice": 150.0, 
+                 "mktValue": 15000.0, "currency": "USD", "avgCost": 140.0}
+            ]
+        }
+        res = self.manager.get_positions_by_conid(265598)
+        self.assertIn("U1234567", res.root)
+        self.assertEqual(len(res.root["U1234567"]), 1)
+        self.assertEqual(res.root["U1234567"][0].conid, 265598)
+        self.mock_client.get.assert_called_with("/portfolio/positions/265598")
+
+    def test_get_account_meta(self):
+        """Test retrieving portfolio account metadata."""
+        self.mock_client.get.return_value = {
+            "id": "U1234567",
+            "accountId": "U1234567",
+            "displayName": "Main Account",
+            "currency": "USD"
+        }
+        res = self.manager.get_account_meta("U1234567")
+        self.assertEqual(res.accountId, "U1234567")
+        self.assertEqual(res.baseCurrency, "USD")
+        self.mock_client.get.assert_called_with("/portfolio/U1234567/meta")
+
+    def test_get_position_by_conid(self):
+        """Test retrieving position detail by conid."""
+        self.mock_client.get.return_value = [
+            {"acctId": "U1234567", "conid": 265598, "position": 100, "mktPrice": 150.0, 
+             "mktValue": 15000.0, "currency": "USD", "avgCost": 140.0}
+        ]
+        res = self.manager.get_position_by_conid("U1234567", 265598)
+        self.assertEqual(len(res.positions), 1)
+        self.assertEqual(res.positions[0].conid, 265598)
+        self.mock_client.get.assert_called_with("/portfolio/U1234567/position/265598")
+
+    def test_get_pa_allocation(self):
+        """Test retrieving PA allocation data."""
+        self.mock_client.post.return_value = {
+            "id": "getAllocation",
+            "currency": "USD",
+            "realtime": False,
+            "date": "20260612",
+            "allocations": {
+                "ASSET_CLASS": {
+                    "long": {
+                        "total": {"nav": 15000.0, "weight": 1.0},
+                        "items": [
+                            {"id": "EQ", "name": "Equities", "nav": 15000.0, "weight": 1.0, "color": "#d780ff"}
+                        ]
+                    }
+                }
+            }
+        }
+        # Test with mandatory + optional arguments
+        res = self.manager.get_pa_allocation(["U1234567"], type="ALL", currency="USD", date="20260613", model="model1")
+        self.assertEqual(res.id, "getAllocation")
+        self.assertIn("ASSET_CLASS", res.allocations)
+        self.assertEqual(res.allocations["ASSET_CLASS"].long.total.nav, 15000.0)
+        self.assertEqual(res.allocations["ASSET_CLASS"].long.items[0].name, "Equities")
+        self.mock_client.post.assert_called_with(
+            "/pa/allocation",
+            json_data={
+                "acctIds": ["U1234567"],
+                "type": "ALL",
+                "currency": "USD",
+                "date": "20260613",
+                "model": "model1"
+            }
+        )
+
+        # Test with only mandatory arguments
+        res_mandatory = self.manager.get_pa_allocation(["U1234567"], type="ASSET_CLASS")
+        self.assertEqual(res_mandatory.id, "getAllocation")
+        self.mock_client.post.assert_called_with(
+            "/pa/allocation",
+            json_data={
+                "acctIds": ["U1234567"],
+                "type": "ASSET_CLASS"
+            }
+        )
+
+    def test_get_positions_no_page(self):
+        """Test retrieving portfolio positions without specifying page ID."""
+        self.mock_client.get.return_value = []
+        res = self.manager.get_positions("U1234567")
+        self.assertEqual(len(res.positions), 0)
+        self.mock_client.get.assert_called_with("/portfolio/U1234567/positions")
 
     # --- Error Cases ---
 
@@ -147,7 +316,7 @@ class TestIBKRPortfolio(unittest.TestCase):
     def test_invalidate_positions_error(self):
         self.mock_client.post.side_effect = Exception("API Error")
         with self.assertRaises(Exception):
-            self.manager.invalidate_positions()
+            self.manager.invalidate_positions("U1234567")
 
     def test_get_allocation_error(self):
         self.mock_client.get.side_effect = Exception("API Error")
@@ -159,6 +328,11 @@ class TestIBKRPortfolio(unittest.TestCase):
         with self.assertRaises(Exception):
             self.manager.get_performance(["U1234567"])
 
+    def test_get_performance_all_periods_error(self):
+        self.mock_client.post.side_effect = Exception("API Error")
+        with self.assertRaises(Exception):
+            self.manager.get_performance_all_periods(["U1234567"])
+
     def test_get_pa_summary_error(self):
         self.mock_client.post.side_effect = Exception("API Error")
         with self.assertRaises(Exception):
@@ -167,7 +341,32 @@ class TestIBKRPortfolio(unittest.TestCase):
     def test_get_transactions_error(self):
         self.mock_client.post.side_effect = Exception("API Error")
         with self.assertRaises(Exception):
-            self.manager.get_transactions(["U1234567"])
+            self.manager.get_transactions(["U1234567"], [265598], "USD")
+
+    def test_list_subaccounts_error(self):
+        self.mock_client.get.side_effect = Exception("API Error")
+        with self.assertRaises(Exception):
+            self.manager.list_subaccounts()
+
+    def test_get_positions_by_conid_error(self):
+        self.mock_client.get.side_effect = Exception("API Error")
+        with self.assertRaises(Exception):
+            self.manager.get_positions_by_conid(265598)
+
+    def test_get_account_meta_error(self):
+        self.mock_client.get.side_effect = Exception("API Error")
+        with self.assertRaises(Exception):
+            self.manager.get_account_meta("U1234567")
+
+    def test_get_position_by_conid_error(self):
+        self.mock_client.get.side_effect = Exception("API Error")
+        with self.assertRaises(Exception):
+            self.manager.get_position_by_conid("U1234567", 265598)
+
+    def test_get_pa_allocation_error(self):
+        self.mock_client.post.side_effect = Exception("API Error")
+        with self.assertRaises(Exception):
+            self.manager.get_pa_allocation(["U1234567"], type="ALL")
 
 class TestIBKRPortfolioCLI(unittest.TestCase):
     """
@@ -208,9 +407,9 @@ class TestIBKRPortfolioCLI(unittest.TestCase):
     def test_cli_invalidate(self):
         from tools.ibkr.ibkr_portfolio.cli import main
         self.manager_instance.invalidate_positions.return_value = {"status": "ok"}
-        with patch('sys.argv', ['ibkr_portfolio', 'invalidate']):
+        with patch('sys.argv', ['ibkr_portfolio', 'invalidate', '--account', 'U1234567']):
             main()
-            self.manager_instance.invalidate_positions.assert_called_once()
+            self.manager_instance.invalidate_positions.assert_called_with('U1234567')
 
     def test_cli_allocation(self):
         from tools.ibkr.ibkr_portfolio.cli import main
@@ -220,14 +419,19 @@ class TestIBKRPortfolioCLI(unittest.TestCase):
 
     def test_cli_performance(self):
         from tools.ibkr.ibkr_portfolio.cli import main
-        with patch('sys.argv', ['ibkr_portfolio', 'performance', '--accounts', 'U1,U2', '--freq', 'M']):
-            # argparse splits by space usually, but here it's nargs='+'
-            # The test should pass the accounts as separate args or check how argparse handles it
-            pass 
-        
-        with patch('sys.argv', ['ibkr_portfolio', 'performance', '--accounts', 'U1', 'U2', '--freq', 'M']):
+        with patch('sys.argv', ['ibkr_portfolio', 'performance', '--accounts', 'U1', 'U2', '--period', '1M']):
             main()
-            self.manager_instance.get_performance.assert_called_with(['U1', 'U2'], 'M')
+            self.manager_instance.get_performance.assert_called_with(['U1', 'U2'], '1M')
+            
+        with patch('sys.argv', ['ibkr_portfolio', 'performance', '--accounts', 'U1', 'U2']):
+            main()
+            self.manager_instance.get_performance.assert_called_with(['U1', 'U2'], '12M')
+
+    def test_cli_performance_all(self):
+        from tools.ibkr.ibkr_portfolio.cli import main
+        with patch('sys.argv', ['ibkr_portfolio', 'performance-all', '--accounts', 'U1', 'U2']):
+            main()
+            self.manager_instance.get_performance_all_periods.assert_called_with(['U1', 'U2'])
 
     def test_cli_pa_summary(self):
         from tools.ibkr.ibkr_portfolio.cli import main
@@ -237,9 +441,84 @@ class TestIBKRPortfolioCLI(unittest.TestCase):
 
     def test_cli_transactions(self):
         from tools.ibkr.ibkr_portfolio.cli import main
-        with patch('sys.argv', ['ibkr_portfolio', 'transactions', '--accounts', 'U1', '--conid', '123', '--days', '7']):
+        # Test CLI call with specific days
+        with patch('sys.argv', ['ibkr_portfolio', 'transactions', '--accounts', 'U1', '--conids', '123', '456', '--currency', 'USD', '--days', '7']):
             main()
-            self.manager_instance.get_transactions.assert_called_with(['U1'], 123, 7)
+            self.manager_instance.get_transactions.assert_called_with(
+                account_ids=['U1'],
+                conids=[123, 456],
+                currency='USD',
+                days=7
+            )
+            
+        # Test CLI call with default days (90)
+        with patch('sys.argv', ['ibkr_portfolio', 'transactions', '--accounts', 'U1', '--conids', '123', '--currency', 'USD']):
+            main()
+            self.manager_instance.get_transactions.assert_called_with(
+                account_ids=['U1'],
+                conids=[123],
+                currency='USD',
+                days=90
+            )
+
+    def test_cli_subaccounts(self):
+        from tools.ibkr.ibkr_portfolio.cli import main
+        with patch('sys.argv', ['ibkr_portfolio', 'subaccounts']):
+            main()
+            self.manager_instance.list_subaccounts.assert_called_once()
+
+    def test_cli_positions_conid(self):
+        from tools.ibkr.ibkr_portfolio.cli import main
+        with patch('sys.argv', ['ibkr_portfolio', 'positions-conid', '--conid', '265598']):
+            main()
+            self.manager_instance.get_positions_by_conid.assert_called_with(265598)
+
+    def test_cli_meta(self):
+        from tools.ibkr.ibkr_portfolio.cli import main
+        with patch('sys.argv', ['ibkr_portfolio', 'meta', '--account', 'U1234567']):
+            main()
+            self.manager_instance.get_account_meta.assert_called_with('U1234567')
+
+    def test_cli_position(self):
+        from tools.ibkr.ibkr_portfolio.cli import main
+        with patch('sys.argv', ['ibkr_portfolio', 'position', '--account', 'U1234567', '--conid', '265598']):
+            main()
+            self.manager_instance.get_position_by_conid.assert_called_with('U1234567', 265598)
+
+    def test_cli_pa_allocation(self):
+        from tools.ibkr.ibkr_portfolio.cli import main
+        # Test with mandatory + optional arguments
+        with patch('sys.argv', [
+            'ibkr_portfolio', 'pa-allocation',
+            '--accounts', 'U1234567',
+            '--type', 'ALL',
+            '--currency', 'USD',
+            '--date', '20260613',
+            '--model', 'model1'
+        ]):
+            main()
+            self.manager_instance.get_pa_allocation.assert_called_with(
+                account_ids=['U1234567'],
+                type='ALL',
+                currency='USD',
+                date='20260613',
+                model='model1'
+            )
+
+        # Test with only mandatory arguments
+        with patch('sys.argv', [
+            'ibkr_portfolio', 'pa-allocation',
+            '--accounts', 'U1234567',
+            '--type', 'ASSET_CLASS'
+        ]):
+            main()
+            self.manager_instance.get_pa_allocation.assert_called_with(
+                account_ids=['U1234567'],
+                type='ASSET_CLASS',
+                currency=None,
+                date=None,
+                model=None
+            )
 
 if __name__ == "__main__":
     unittest.main()

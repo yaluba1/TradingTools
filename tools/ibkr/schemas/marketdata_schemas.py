@@ -3,8 +3,8 @@ Pydantic schemas for the IBKR Market Data tool.
 This module defines the validation models for historical bar data
 as specified in the Interactive Brokers Client Portal API documentation.
 """
-from pydantic import BaseModel, Field
-from typing import List, Optional, Union
+from pydantic import BaseModel, Field, ConfigDict
+from typing import List, Optional, Union, Dict, Any
 
 class HistoricalBar(BaseModel):
     """
@@ -16,7 +16,7 @@ class HistoricalBar(BaseModel):
     l: Optional[float] = Field(None, description="Low price")
     v: Optional[float] = Field(None, description="Volume")
     t: Optional[int] = Field(None, description="Timestamp (Unix epoch in milliseconds)")
-    model_config = {"extra": "allow"}
+    model_config = ConfigDict(extra="allow")
 
 class HistoricalDataResponse(BaseModel):
     """
@@ -32,4 +32,4 @@ class HistoricalDataResponse(BaseModel):
     data: List[HistoricalBar] = Field(default=[], description="List of historical OHLCV bars")
     points: Optional[int] = Field(None, description="Number of data points")
     travelTime: Optional[int] = Field(None, description="Travel time or latency")
-    model_config = {"extra": "allow"}
+    model_config = ConfigDict(extra="allow")

@@ -19,7 +19,11 @@ def main():
     subparsers.add_parser("status", help="Check current authentication and connection status")
 
     # Command: init
-    subparsers.add_parser("init", help="Initialize the brokerage session (requires authentication)")
+    init_parser = subparsers.add_parser("init", help="Initialize the brokerage session (requires authentication)")
+    init_parser.add_argument("--publish", action="store_true", default=True, help="Publish the session (default)")
+    init_parser.add_argument("--no-publish", dest="publish", action="store_false", help="Do not publish the session")
+    init_parser.add_argument("--compete", action="store_true", default=True, help="Compete/disconnect other sessions (default)")
+    init_parser.add_argument("--no-compete", dest="compete", action="store_false", help="Do not compete/disconnect other sessions")
 
     # Command: logout
     subparsers.add_parser("logout", help="Terminate the current session")
@@ -29,6 +33,9 @@ def main():
 
     # Command: reauth
     subparsers.add_parser("reauth", help="Trigger session re-authentication")
+
+    # Command: validate
+    subparsers.add_parser("validate", help="Validate the current SSO session")
 
     args = parser.parse_args()
 
@@ -44,7 +51,7 @@ def main():
             print(result.model_dump_json(indent=2))
 
         elif args.command == "init":
-            result = manager.init_session()
+            result = manager.init_session(publish=args.publish, compete=args.compete)
             print(json.dumps(result, indent=2))
 
         elif args.command == "logout":
@@ -58,6 +65,10 @@ def main():
         elif args.command == "reauth":
             result = manager.reauthenticate()
             print(json.dumps(result, indent=2))
+
+        elif args.command == "validate":
+            result = manager.validate_sso()
+            print(result.model_dump_json(indent=2))
 
     except Exception as e:
         # Errors are logged in core.py via IBKRLogger

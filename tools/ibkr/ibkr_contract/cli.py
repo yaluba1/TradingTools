@@ -44,7 +44,6 @@ def main():
     search_parser.add_argument("--symbol", required=True, help="Ticker symbol (e.g., AAPL)")
     search_parser.add_argument("--sectype", help="Asset class filter (e.g., STK, OPT, FUT)")
     search_parser.add_argument("--name", action="store_true", help="If set, also search company names")
-    search_parser.add_argument("--more", action="store_true", help="If set, returns more results")
     search_parser.add_argument("--referrer", help="Referrer source identifier")
 
     # Details subcommand
@@ -161,7 +160,6 @@ def main():
                 args.symbol,
                 secType=args.sectype,
                 name=args.name if args.name else None,
-                more=args.more if args.more else None,
                 referrer=args.referrer
             )
             print(json.dumps(result.model_dump(), indent=2))

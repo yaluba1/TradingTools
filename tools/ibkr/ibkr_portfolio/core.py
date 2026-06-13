@@ -8,12 +8,17 @@ from ..common.api_client import IBKRClient
 from ..common.logger import IBKRLogger
 from ..schemas.portfolio_schemas import (
     PortfolioAccountsResponse,
+    PortfolioSubaccountsResponse,
+    PortfolioAccountMetaResponse,
     PortfolioPositionsResponse,
+    PortfolioPositionsConidResponse,
+    PortfolioPositionResponse,
     PortfolioLedgerResponse,
     PortfolioSummaryResponse,
     PortfolioAllocationResponse,
     PAPerformanceResponse,
     PASummaryResponse,
+    PAAllocationResponse,
     PATransactionsResponse
 )
 
@@ -68,8 +73,8 @@ class PortfolioManager:
         endpoint = f"/portfolio/{account_id}/summary"
         try:
             data = self.client.get(endpoint)
-            # Response is a object with 'accountsummaries' list
-            summary = PortfolioSummaryResponse(summary=data.get("accountsummaries", []))
+            # Response is a dictionary of summary characteristics
+            summary = PortfolioSummaryResponse(summary=data)
             self.logger.log_action(
                 "get_summary",
                 account_id=account_id,
@@ -106,19 +111,24 @@ class PortfolioManager:
             self.logger.error(f"Failed to fetch ledger for {account_id}: {e}")
             raise
 
-    def get_positions(self, account_id: str, page_id: int = 0) -> PortfolioPositionsResponse:
+    def get_positions(self, account_id: str, page_id: Optional[int] = None) -> PortfolioPositionsResponse:
         """
         Retrieve portfolio positions for a specific account.
         
         Args:
             account_id (str): The account ID.
-            page_id (int): Page number for pagination.
+            page_id (Optional[int]): Page number for pagination. If None, queries all positions.
             
         Returns:
             PortfolioPositionsResponse: Validated list of positions.
         """
-        self.logger.info(f"Fetching positions for account: {account_id}, page: {page_id}")
-        endpoint = f"/portfolio/{account_id}/positions/{page_id}"
+        if page_id is not None:
+            self.logger.info(f"Fetching positions for account: {account_id}, page: {page_id}")
+            endpoint = f"/portfolio/{account_id}/positions/{page_id}"
+        else:
+            self.logger.info(f"Fetching positions for account: {account_id}")
+            endpoint = f"/portfolio/{account_id}/positions"
+            
         try:
             data = self.client.get(endpoint)
             # Response is a list of position objects
@@ -126,28 +136,83 @@ class PortfolioManager:
             self.logger.log_action(
                 "get_positions",
                 account_id=account_id,
-                message=f"Retrieved {len(positions.positions)} positions for {account_id} (Page {page_id})."
+                message=f"Retrieved {len(positions.positions)} positions for {account_id}."
             )
             return positions
         except Exception as e:
             self.logger.error(f"Failed to fetch positions for {account_id}: {e}")
             raise
 
-    def invalidate_positions(self) -> Dict[str, Any]:
+    def get_positions_nocache(
+        self,
+        account_id: str,
+        model: Optional[str] = None,
+        sort: Optional[str] = None,
+        direction: Optional[str] = None
+    ) -> PortfolioPositionsResponse:
+        """
+        Retrieve near-real-time (uncached) portfolio positions for a specific account.
+        
+        Unlike the paginated 'get_positions' endpoint (/portfolio/{accountId}/positions/{pageId}),
+        this endpoint (/portfolio2/{accountId}/positions) bypasses gateway cache and returns
+        all positions without pagination.
+        
+        Args:
+            account_id (str): The account ID.
+            model (Optional[str]): Code for the model portfolio to compare against.
+            sort (Optional[str]): Column to sort the table by.
+            direction (Optional[str]): Sort order: 'a' (ascending) or 'd' (descending).
+            
+        Returns:
+            PortfolioPositionsResponse: Validated list of positions.
+        """
+        self.logger.info(f"Fetching uncached positions for account: {account_id}")
+        endpoint = f"/portfolio2/{account_id}/positions"
+        
+        params = {}
+        if model is not None:
+            params["model"] = model
+        if sort is not None:
+            params["sort"] = sort
+        if direction is not None:
+            params["direction"] = direction
+            
+        try:
+            data = self.client.get(endpoint, params=params)
+            # Response is a list of position objects
+            positions = PortfolioPositionsResponse(positions=data)
+            self.logger.log_action(
+                "get_positions_nocache",
+                account_id=account_id,
+                message=f"Retrieved {len(positions.positions)} uncached positions for {account_id}."
+            )
+            return positions
+        except Exception as e:
+            self.logger.error(f"Failed to fetch uncached positions for {account_id}: {e}")
+            raise
+
+    def invalidate_positions(self, account_id: str) -> Dict[str, Any]:
         """
         Invalidate the backend cache for portfolio positions.
         
+        Args:
+            account_id (str): The account ID to invalidate cache for.
+            
         Returns:
             Dict[str, Any]: API response metadata.
         """
-        self.logger.info("Invalidating portfolio positions cache.")
-        endpoint = "/portfolio/positions/invalidate"
+        self.logger.info(f"Invalidating portfolio positions cache for account: {account_id}")
+        endpoint = f"/portfolio/{account_id}/positions/invalidate"
         try:
             data = self.client.post(endpoint)
-            self.logger.log_action("invalidate_positions", message="Positions cache invalidated.")
+            self.logger.log_action(
+                "invalidate_positions",
+                account_id=account_id,
+                message=f"Positions cache invalidated for account {account_id}."
+            )
             return data
         except Exception as e:
-            self.logger.error(f"Failed to invalidate positions cache: {e}")
+            self.logger.error(f"Failed to invalidate positions cache for {account_id}: {e}")
             raise
 
     def get_allocation(self, account_id: Optional[str] = None) -> PortfolioAllocationResponse:
@@ -180,31 +245,61 @@ class PortfolioManager:
             self.logger.error(f"Failed to fetch allocation: {e}")
             raise
 
-    def get_performance(self, account_ids: List[str], freq: str = "D") -> PAPerformanceResponse:
+    def get_performance(self, account_ids: List[str], period: str = "12M") -> PAPerformanceResponse:
         """
         Retrieve performance data from Portfolio Analyst.
         
         Args:
             account_ids (List[str]): List of account IDs.
-            freq (str): Frequency of data ('D' daily, 'M' monthly, 'Q' quarterly, 'Y' yearly).
+            period (str): Period of data ('1D', '7D', 'MTD', '1M', '3M', '6M', '12M', 'YTD').
             
         Returns:
             PAPerformanceResponse: Validated performance data.
         """
-        self.logger.info(f"Fetching PA performance for accounts: {account_ids}, freq: {freq}")
+        self.logger.info(f"Fetching PA performance for accounts: {account_ids}, period: {period}")
         endpoint = "/pa/performance"
-        payload = {"acctIds": account_ids, "freq": freq}
+        
+        # Map documented "12M" to the gateway's expected "1Y" to resolve the gateway bug
+        gateway_period = "1Y" if period == "12M" else period
+        
+        payload = {"acctIds": account_ids, "period": gateway_period}
         try:
             data = self.client.post(endpoint, json_data=payload)
             performance = PAPerformanceResponse(**data)
             self.logger.log_action(
                 "get_performance",
                 message=f"Retrieved performance for {len(account_ids)} accounts.",
-                details={"acctIds": account_ids, "freq": freq}
+                details={"acctIds": account_ids, "period": period}
             )
             return performance
         except Exception as e:
             self.logger.error(f"Failed to fetch PA performance: {e}")
+            raise
+
+    def get_performance_all_periods(self, account_ids: List[str]) -> PAPerformanceResponse:
+        """
+        Retrieve performance data for all periods from Portfolio Analyst.
+        
+        Args:
+            account_ids (List[str]): List of account IDs.
+            
+        Returns:
+            PAPerformanceResponse: Validated performance data for all periods.
+        """
+        self.logger.info(f"Fetching PA performance all periods for accounts: {account_ids}")
+        endpoint = "/pa/allperiods"
+        payload = {"acctIds": account_ids}
+        try:
+            data = self.client.post(endpoint, json_data=payload)
+            performance = PAPerformanceResponse(**data)
+            self.logger.log_action(
+                "get_performance_all_periods",
+                message=f"Retrieved performance all periods for {len(account_ids)} accounts.",
+                details={"acctIds": account_ids}
+            )
+            return performance
+        except Exception as e:
+            self.logger.error(f"Failed to fetch PA performance all periods: {e}")
             raise
 
     def get_pa_summary(self, account_ids: List[str]) -> PASummaryResponse:
@@ -233,26 +328,28 @@ class PortfolioManager:
             self.logger.error(f"Failed to fetch PA summary: {e}")
             raise
 
-    def get_transactions(self, account_ids: List[str], conid: Optional[int] = None, 
-                         days: Optional[int] = None) -> PATransactionsResponse:
+    def get_transactions(self, account_ids: List[str], conids: List[int], currency: str,
+                         days: int = 90) -> PATransactionsResponse:
         """
         Retrieve historical transactions from Portfolio Analyst.
         
         Args:
-            account_ids (List[str]): List of account IDs.
-            conid (Optional[int]): Filter by contract ID.
-            days (Optional[int]): Number of days to look back.
+            account_ids (List[str]): List of account IDs (acctIds).
+            conids (List[int]): List of contract IDs (conids).
+            currency (str): Currency code (e.g. "USD").
+            days (int): Number of days to look back. Defaults to 90.
             
         Returns:
             PATransactionsResponse: Validated list of transactions.
         """
         self.logger.info(f"Fetching PA transactions for accounts: {account_ids}")
         endpoint = "/pa/transactions"
-        payload = {"acctIds": account_ids}
-        if conid:
-            payload["conid"] = conid
-        if days:
-            payload["days"] = days
+        payload = {
+            "acctIds": account_ids,
+            "conids": conids,
+            "currency": currency,
+            "days": days
+        }
             
         try:
             data = self.client.post(endpoint, json_data=payload)
@@ -271,4 +368,143 @@ class PortfolioManager:
             return transactions
         except Exception as e:
             self.logger.error(f"Failed to fetch PA transactions: {e}")
+            raise
+
+    def list_subaccounts(self) -> PortfolioSubaccountsResponse:
+        """
+        Retrieve a list of sub-accounts associated with tiered account structures.
+        
+        Returns:
+            PortfolioSubaccountsResponse: Validated list of sub-accounts.
+        """
+        self.logger.info("Fetching portfolio subaccounts.")
+        endpoint = "/portfolio/subaccounts"
+        try:
+            data = self.client.get(endpoint)
+            subaccounts = PortfolioSubaccountsResponse(subaccounts=data)
+            self.logger.log_action(
+                "list_subaccounts",
+                message=f"Retrieved {len(subaccounts.subaccounts)} sub-accounts."
+            )
+            return subaccounts
+        except Exception as e:
+            self.logger.error(f"Failed to fetch portfolio subaccounts: {e}")
+            raise
+
+    def get_positions_by_conid(self, conid: int) -> PortfolioPositionsConidResponse:
+        """
+        Retrieve positions across all accounts for a specific contract ID.
+        
+        Args:
+            conid (int): The contract identifier.
+            
+        Returns:
+            PortfolioPositionsConidResponse: Validated dictionary of positions per account.
+        """
+        self.logger.info(f"Fetching all account positions for contract: {conid}")
+        endpoint = f"/portfolio/positions/{conid}"
+        try:
+            data = self.client.get(endpoint)
+            # Response is a dictionary mapping accountId to list of positions
+            positions = PortfolioPositionsConidResponse(data)
+            self.logger.log_action(
+                "get_positions_by_conid",
+                message=f"Retrieved positions across accounts for contract {conid}."
+            )
+            return positions
+        except Exception as e:
+            self.logger.error(f"Failed to fetch positions for contract {conid}: {e}")
+            raise
+
+    def get_account_meta(self, account_id: str) -> PortfolioAccountMetaResponse:
+        """
+        Retrieve metadata and attributes for a specific account.
+        
+        Args:
+            account_id (str): The account ID.
+            
+        Returns:
+            PortfolioAccountMetaResponse: Validated metadata/attributes.
+        """
+        self.logger.info(f"Fetching account metadata for account: {account_id}")
+        endpoint = f"/portfolio/{account_id}/meta"
+        try:
+            data = self.client.get(endpoint)
+            meta = PortfolioAccountMetaResponse(**data)
+            self.logger.log_action(
+                "get_account_meta",
+                account_id=account_id,
+                message=f"Retrieved metadata for account {account_id}."
+            )
+            return meta
+        except Exception as e:
+            self.logger.error(f"Failed to fetch metadata for account {account_id}: {e}")
+            raise
+
+    def get_position_by_conid(self, account_id: str, conid: int) -> PortfolioPositionResponse:
+        """
+        Retrieve position details for a specific financial instrument in an account.
+        
+        Args:
+            account_id (str): The account ID.
+            conid (int): The contract identifier.
+            
+        Returns:
+            PortfolioPositionResponse: Validated list of position details.
+        """
+        self.logger.info(f"Fetching position for contract {conid} in account {account_id}")
+        endpoint = f"/portfolio/{account_id}/position/{conid}"
+        try:
+            data = self.client.get(endpoint)
+            positions = PortfolioPositionResponse(positions=data)
+            self.logger.log_action(
+                "get_position_by_conid",
+                account_id=account_id,
+                message=f"Retrieved position for contract {conid} in account {account_id}."
+            )
+            return positions
+        except Exception as e:
+            self.logger.error(f"Failed to fetch position for contract {conid} in account {account_id}: {e}")
+            raise
+
+    def get_pa_allocation(self, account_ids: List[str], type: str, 
+                          currency: Optional[str] = None, date: Optional[str] = None, 
+                          model: Optional[str] = None) -> PAAllocationResponse:
+        """
+        Retrieve consolidated Portfolio Analyst allocation.
+        
+        Args:
+            account_ids (List[str]): List of account IDs.
+            type (str): The allocation category ('ALL', 'ASSET_CLASS', 'COUNTRY', 'FINANCIAL_INSTRUMENT', 'REGION', 'SECTOR').
+            currency (Optional[str]): Optional currency code to filter or aggregate by.
+            date (Optional[str]): Optional reporting date.
+            model (Optional[str]): Optional model identifier.
+            
+        Returns:
+            PAAllocationResponse: Validated consolidated allocation.
+        """
+        self.logger.info(f"Fetching consolidated PA allocation for accounts: {account_ids}, type: {type}")
+        endpoint = "/pa/allocation"
+        payload = {
+            "acctIds": account_ids,
+            "type": type
+        }
+        if currency is not None:
+            payload["currency"] = currency
+        if date is not None:
+            payload["date"] = date
+        if model is not None:
+            payload["model"] = model
+
+        try:
+            data = self.client.post(endpoint, json_data=payload)
+            allocations = PAAllocationResponse(**data)
+            self.logger.log_action(
+                "get_pa_allocation",
+                message=f"Retrieved consolidated PA allocation for {len(account_ids)} accounts.",
+                details=payload
+            )
+            return allocations
+        except Exception as e:
+            self.logger.error(f"Failed to fetch consolidated PA allocation: {e}")
             raise

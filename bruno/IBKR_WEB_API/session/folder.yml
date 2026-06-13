@@ -1,0 +1,7 @@
+info:
+  name: session
+  type: folder
+  seq: 8
+
+request:
+  auth: inherit

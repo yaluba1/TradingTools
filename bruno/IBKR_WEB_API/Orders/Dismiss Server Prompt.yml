@@ -1,0 +1,30 @@
+info:
+  name: Dismiss Server Prompt
+  type: http
+  seq: 8
+
+http:
+  method: POST
+  url: https://localhost:{{gw_port}}/v1/api/iserver/notification
+  body:
+    type: json
+    data: |-
+      { 
+        "orderId": {{orderId}},
+        "reId": "{{reId}}",
+        "text": "Yes"
+      }
+  auth: inherit
+
+runtime:
+  variables:
+    - name: orderId
+      value: "761318694"
+    - name: reId
+      value: o163
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

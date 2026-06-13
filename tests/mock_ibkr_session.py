@@ -48,11 +48,20 @@ class TestIBKRSession(unittest.TestCase):
         self.mock_db_manager.get_session.assert_called()
 
     def test_init_session(self):
-        """Test initializing a new session."""
+        """Test initializing a new session with default parameters."""
         self.mock_client.post.return_value = {"status": "ok"}
         res = self.manager.init_session()
         self.assertEqual(res["status"], "ok")
-        self.mock_client.post.assert_called_with("/iserver/auth/ssodh/init")
+        self.mock_client.post.assert_called_with("/iserver/auth/ssodh/init", json_data={"publish": True, "compete": True})
+        # Verify DB start was recorded
+        self.mock_db_manager.get_session.assert_called()
+
+    def test_init_session_custom(self):
+        """Test initializing a new session with custom parameters."""
+        self.mock_client.post.return_value = {"status": "ok"}
+        res = self.manager.init_session(publish=False, compete=False)
+        self.assertEqual(res["status"], "ok")
+        self.mock_client.post.assert_called_with("/iserver/auth/ssodh/init", json_data={"publish": False, "compete": False})
         # Verify DB start was recorded
         self.mock_db_manager.get_session.assert_called()
 
@@ -75,6 +84,19 @@ class TestIBKRSession(unittest.TestCase):
         }
         res = self.manager.tickle()
         self.assertEqual(res.session, "xyz")
+        self.assertTrue(res.collateral)
+        self.mock_client.post.assert_called_with("/tickle")
+
+    def test_tickle_missing_collateral(self):
+        """Test heartbeat (tickle) when collateral is missing."""
+        self.mock_client.post.return_value = {
+            "session": "xyz",
+            "ssoExpires": 1000,
+            "iserver": {}
+        }
+        res = self.manager.tickle()
+        self.assertEqual(res.session, "xyz")
+        self.assertIsNone(res.collateral)
         self.mock_client.post.assert_called_with("/tickle")
 
     def test_reauthenticate(self):
@@ -110,6 +132,40 @@ class TestIBKRSession(unittest.TestCase):
         self.mock_client.post.side_effect = Exception("API Error")
         with self.assertRaises(Exception):
             self.manager.reauthenticate()
+
+    def test_validate_sso_success(self):
+        """Test validation of SSO session success case."""
+        self.mock_client.get.return_value = {
+            "LOGIN_TYPE": 1,
+            "USER_NAME": "john_doe",
+            "USER_ID": 12345,
+            "expire": None,
+            "EXPIRES": 1781375895576,
+            "RESULT": True,
+            "AUTH_TIME": 1781372018347,
+            "TOKEN": "mock_token",
+            "IP": "127.0.0.1",
+            "region": "US"
+        }
+        res = self.manager.validate_sso()
+        self.assertEqual(res.LOGIN_TYPE, 1)
+        self.assertEqual(res.USER_NAME, "john_doe")
+        self.assertEqual(res.USER_ID, 12345)
+        self.assertIsNone(res.expire)
+        self.assertEqual(res.EXPIRES, 1781375895576)
+        self.assertTrue(res.RESULT)
+        self.assertEqual(res.AUTH_TIME, 1781372018347)
+        # Verify extra fields are allowed and accessible
+        self.assertEqual(res.TOKEN, "mock_token")
+        self.assertEqual(res.IP, "127.0.0.1")
+        self.assertEqual(res.region, "US")
+        self.mock_client.get.assert_called_with("/sso/validate")
+
+    def test_validate_sso_error(self):
+        """Test validation of SSO session failure case."""
+        self.mock_client.get.side_effect = Exception("API Error")
+        with self.assertRaises(Exception):
+            self.manager.validate_sso()
 
     def test_db_failure_start(self):
         """Test graceful handling of DB failure during session start."""
@@ -152,7 +208,14 @@ class TestIBKRSessionCLI(unittest.TestCase):
         self.manager_instance.init_session.return_value = {"status": "ok"}
         with patch('sys.argv', ['ibkr_session', 'init']):
             main()
-            self.manager_instance.init_session.assert_called_once()
+            self.manager_instance.init_session.assert_called_once_with(publish=True, compete=True)
+
+    def test_cli_init_non_defaults(self):
+        from tools.ibkr.ibkr_session.cli import main
+        self.manager_instance.init_session.return_value = {"status": "ok"}
+        with patch('sys.argv', ['ibkr_session', 'init', '--no-publish', '--no-compete']):
+            main()
+            self.manager_instance.init_session.assert_called_once_with(publish=False, compete=False)
 
     def test_cli_logout(self):
         from tools.ibkr.ibkr_session.cli import main
@@ -176,6 +239,15 @@ class TestIBKRSessionCLI(unittest.TestCase):
         with patch('sys.argv', ['ibkr_session', 'reauth']):
             main()
             self.manager_instance.reauthenticate.assert_called_once()
+
+    def test_cli_validate(self):
+        from tools.ibkr.ibkr_session.cli import main
+        mock_validate = MagicMock()
+        mock_validate.model_dump_json.return_value = "{}"
+        self.manager_instance.validate_sso.return_value = mock_validate
+        with patch('sys.argv', ['ibkr_session', 'validate']):
+            main()
+            self.manager_instance.validate_sso.assert_called_once()
 
 if __name__ == "__main__":
     unittest.main()

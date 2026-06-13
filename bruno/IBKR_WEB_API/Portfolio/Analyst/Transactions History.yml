@@ -1,0 +1,25 @@
+info:
+  name: Transactions History
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: https://127.0.0.1:{{gw_port}}/v1/api/pa/transactions
+  body:
+    type: json
+    data: |-
+      {
+        "acctIds": [
+            "{{accountId}}"
+        ],
+        "conids": [495763831,478483385,581240386,701518202,448082201,499640681,551564629,694607261],
+        "currency": "EUR"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

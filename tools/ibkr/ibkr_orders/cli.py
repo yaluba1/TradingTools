@@ -46,13 +46,16 @@ def main():
     # Modify Order
     modify_parser = subparsers.add_parser("modify", help="Modify an existing order")
     modify_parser.add_argument("--account", required=True, help="IBKR Account ID")
-    modify_parser.add_argument("--cid", required=True, help="Customer Order ID (cId)")
+    modify_parser.add_argument("--id", required=True, help="Order ID to modify (server order ID or customer order ID)")
+    modify_parser.add_argument("--cid", help="Optional new customer order ID (cId)")
     modify_parser.add_argument("--conid", type=int, required=True, help="Contract ID")
+    modify_parser.add_argument("--side", choices=["BUY", "SELL"], default="BUY", help="Order side")
     modify_parser.add_argument("--type", required=True, help="Order type")
     modify_parser.add_argument("--qty", type=float, required=True, help="Quantity")
     modify_parser.add_argument("--price", type=float, help="Limit price")
     modify_parser.add_argument("--aux", type=float, help="Stop price")
     modify_parser.add_argument("--tif", default="DAY", help="Time in force")
+    modify_parser.add_argument("--auto-confirm", action="store_true", help="Automatically accept IBKR warnings/questions")
 
     # Cancel Order
     cancel_parser = subparsers.add_parser("cancel", help="Cancel an order")
@@ -67,6 +70,8 @@ def main():
     list_parser = subparsers.add_parser("list", help="List live orders (monitoring)")
     list_parser.add_argument("--account", help="Optional specific Account ID")
     list_parser.add_argument("--status", help="Optional status filter (e.g., Filled, Submitted)")
+    list_parser.add_argument("--filters", help="Optional order status query filter (e.g., active, filled, cancelled)")
+    list_parser.add_argument("--force", action="store_true", help="Force refresh orders from gateway")
     list_parser.add_argument("--table", action="store_true", help="Output as a human-friendly table")
 
     # Status
@@ -87,6 +92,25 @@ def main():
     reply_parser.add_argument("--id", required=True, help="Reply ID from IBKR")
     reply_parser.add_argument("--confirm", choices=["yes", "no"], default="yes", help="Confirmation")
 
+    # Preview (What-If)
+    preview_parser = subparsers.add_parser("preview", help="Preview order effects (What-If)")
+    preview_parser.add_argument("--account", required=True, help="IBKR Account ID")
+    preview_parser.add_argument("--conid", type=int, required=True, help="Contract ID")
+    preview_parser.add_argument("--side", choices=["BUY", "SELL"], required=True, help="Order side")
+    preview_parser.add_argument("--type", required=True, help="Order type (LMT, MKT, STP)")
+    preview_parser.add_argument("--qty", type=float, required=True, help="Quantity")
+    preview_parser.add_argument("--price", type=float, help="Limit price")
+    preview_parser.add_argument("--aux", type=float, help="Aux/Stop price")
+    preview_parser.add_argument("--tif", default="DAY", help="Time in force")
+    preview_parser.add_argument("--cid", help="Optional customer order ID")
+
+    # Suppress Warnings
+    suppress_parser = subparsers.add_parser("suppress", help="Suppress specific order warning/reply messages")
+    suppress_parser.add_argument("--ids", nargs="+", required=True, help="Message/warning IDs to suppress")
+
+    # Reset Suppression
+    subparsers.add_parser("suppress-reset", help="Reset all suppressed order warnings")
+
     args = parser.parse_args()
     manager = OrdersManager()
 
@@ -100,7 +124,8 @@ def main():
                 price=args.price,
                 auxPrice=args.aux,
                 tif=args.tif,
-                cId=args.cid
+                cId=args.cid,
+                acctId=args.account
             )
             results = manager.place_order(args.account, request, auto_confirm=args.auto_confirm)
             print(json.dumps([r.model_dump() for r in results], indent=2))
@@ -109,14 +134,15 @@ def main():
             request = OrderRequest(
                 conid=args.conid,
                 orderType=args.type,
-                side="BUY",
+                side=args.side,
                 quantity=args.qty,
                 price=args.price,
                 auxPrice=args.aux,
                 tif=args.tif,
-                cId=args.cid
+                cId=args.cid,
+                acctId=args.account
             )
-            results = manager.place_order(args.account, request)
+            results = manager.modify_order(args.account, args.id, request, auto_confirm=args.auto_confirm)
             print(json.dumps([r.model_dump() for r in results], indent=2))
 
         elif args.command == "cancel":
@@ -128,7 +154,12 @@ def main():
             print(json.dumps([r.model_dump() for r in results], indent=2))
 
         elif args.command == "list":
-            orders = manager.list_live_orders(args.account, args.status)
+            orders = manager.list_live_orders(
+                account_id=args.account,
+                status_filter=args.status,
+                filters=args.filters,
+                force=args.force
+            )
             if args.table:
                 # Header
                 print(f"{'Order ID':<10} {'Symbol':<10} {'Side':<6} {'Qty':<8} {'Filled':<8} {'Status':<15} {'Price':<10}")
@@ -158,7 +189,40 @@ def main():
         elif args.command == "reply":
             confirmed = args.confirm == "yes"
             results = manager.reply_to_question(args.id, confirmed)
+            for res in results:
+                if res.order_id:
+                    c_id = None
+                    if res.local_order_id:
+                        c_id = manager._find_customer_order_id(res.local_order_id)
+                    if not c_id:
+                        c_id = manager._find_customer_order_id(res.order_id)
+                    if c_id:
+                        manager._update_order_server_id(c_id, res.order_id, res.order_status)
+                        manager._log_order_event(c_id, "ORDER_REPLY_SUCCESS", f"Order confirmed via reply: status {res.order_status}", res.model_dump())
             print(json.dumps([r.model_dump() for r in results], indent=2))
+
+        elif args.command == "preview":
+            request = OrderRequest(
+                conid=args.conid,
+                orderType=args.type,
+                side=args.side,
+                quantity=args.qty,
+                price=args.price,
+                auxPrice=args.aux,
+                tif=args.tif,
+                cId=args.cid,
+                acctId=args.account
+            )
+            result = manager.preview_orders(args.account, request)
+            print(json.dumps(result.model_dump(), indent=2))
+
+        elif args.command == "suppress":
+            result = manager.suppress_questions(args.ids)
+            print(json.dumps(result, indent=2))
+
+        elif args.command == "suppress-reset":
+            result = manager.reset_suppression()
+            print(json.dumps(result, indent=2))
 
         else:
             parser.print_help()

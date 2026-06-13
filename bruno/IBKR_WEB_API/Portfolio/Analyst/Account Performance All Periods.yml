@@ -1,0 +1,21 @@
+info:
+  name: Account Performance All Periods
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: https://127.0.0.1:{{gw_port}}/v1/api/pa/allperiods
+  body:
+    type: json
+    data: |-
+      {
+        "acctIds": [ "{{accountId}}" ]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

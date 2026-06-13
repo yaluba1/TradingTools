@@ -1,0 +1,50 @@
+info:
+  name: Modify Open Order
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: https://localhost:{{gw_port}}/v1/api/iserver/account/{{accountId}}/order/{{orderId}}
+  body:
+    type: json
+    data: |-
+      {
+        "acctId": "{{accountId}}",
+            "conid": {{conid}},
+            "orderType": "{{orderType}}",
+            "side": "{{side}}",
+            "tif": "{{tif}}",
+            "quantity": {{quantity}},
+            "price": {{price}}
+      }
+  auth: inherit
+
+runtime:
+  variables:
+    - name: orderId
+      value: "761319201"
+    - name: conid
+      value: "468091282"
+    - name: ticker
+      value: ZIM
+      disabled: true
+    - name: exchange
+      value: NYSE
+      disabled: true
+    - name: orderType
+      value: LMT
+    - name: price
+      value: "14.55"
+    - name: side
+      value: BUY
+    - name: tif
+      value: DAY
+    - name: quantity
+      value: "1100"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

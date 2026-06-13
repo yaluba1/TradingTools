@@ -1,0 +1,22 @@
+info:
+  name: Initialize Brokerage Session
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: https://127.0.0.1:{{gw_port}}/v1/api/iserver/auth/ssodh/init
+  body:
+    type: json
+    data: |-
+      {
+        "publish": true,
+        "compete": true
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

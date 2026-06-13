@@ -1,0 +1,27 @@
+info:
+  name: Portfolio Allocation
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: https://127.0.0.1:{{gw_port}}/v1/api/pa/allocation
+  body:
+    type: json
+    data: |-
+      {
+        "acctIds": [
+            "{{accountId}}"
+        ],
+        "type": "ALL",
+        "currency": "USD",
+        "date": "20260612",
+        "model": "model1"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

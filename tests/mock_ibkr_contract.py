@@ -44,13 +44,13 @@ class TestIBKRContract(unittest.TestCase):
             }
         ]
         
-        res = self.manager.search_contracts("AAPL", secType="STK", name=True, more=True, referrer="test")
+        res = self.manager.search_contracts("AAPL", secType="STK", name=True, referrer="test")
         self.assertEqual(len(res.root), 1)
         self.assertEqual(res.root[0].symbol, "AAPL")
         self.assertEqual(res.root[0].conid, "265598")
         self.mock_client.post.assert_called_with(
             "/iserver/secdef/search",
-            json_data={"symbol": "AAPL", "secType": "STK", "name": True, "more": True, "referrer": "test"}
+            json_data={"symbol": "AAPL", "secType": "STK", "name": True, "referrer": "test"}
         )
 
     def test_get_contract_details(self):
@@ -372,9 +372,9 @@ class TestIBKRContractCLI(unittest.TestCase):
         mock_res = MagicMock()
         mock_res.model_dump.return_value = {"root": []}
         self.manager_instance.search_contracts.return_value = mock_res
-        with patch('sys.argv', ['ibkr_contract', 'search', '--symbol', 'AAPL', '--sectype', 'STK', '--name', '--more', '--referrer', 'test']):
+        with patch('sys.argv', ['ibkr_contract', 'search', '--symbol', 'AAPL', '--sectype', 'STK', '--name', '--referrer', 'test']):
             main()
-            self.manager_instance.search_contracts.assert_called_with('AAPL', secType='STK', name=True, more=True, referrer='test')
+            self.manager_instance.search_contracts.assert_called_with('AAPL', secType='STK', name=True, referrer='test')
 
     def test_cli_details(self):
         from tools.ibkr.ibkr_contract.cli import main

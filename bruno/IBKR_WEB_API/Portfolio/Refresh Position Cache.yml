@@ -1,0 +1,15 @@
+info:
+  name: Refresh Position Cache
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: https://127.0.0.1:{{gw_port}}/v1/api/portfolio/{{accountId}}/positions/invalidate
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -30,6 +30,9 @@ Usage
     # Logout and record session end
     python -m tools.ibkr.ibkr_session logout
 
+    # Validate SSO Web API session
+    python -m tools.ibkr.ibkr_session validate
+
 Detailed Command Reference
 --------------------------
 
@@ -50,6 +53,11 @@ Detailed Command Reference
        
        Requests initialization of the brokerage session.
        
+       **Arguments**:
+       
+       - ``--publish`` / ``--no-publish``: Publish the session to the broker (defaults to true).
+       - ``--compete`` / ``--no-compete``: Compete/disconnect other sessions (defaults to true).
+       
        **Side Effect**: Records a new ``ACTIVE`` session in the ``ibkr_sessions`` table. Any previous active session is marked as ``SUPERSEDED``.
    * - ``logout``
      - **Logout.**
@@ -65,6 +73,10 @@ Detailed Command Reference
      - **Re-authenticate.**
        
        Triggers a re-authentication flow with the Gateway.
+   * - ``validate``
+     - **Validate SSO Web API Session.**
+       
+       Validates the current session for the SSO user and extends the token lifetime.
 
 Session Database Schema
 -----------------------

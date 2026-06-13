@@ -1,0 +1,52 @@
+info:
+  name: Place Order
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: https://localhost:{{gw_port}}/v1/api/iserver/account/{{accountId}}/orders
+  body:
+    type: json
+    data: |-
+      { 
+        "orders": [
+          {
+            "acctId": "{{accountId}}",
+            "conid": {{conid}},
+            "listingExchange": "{{exchange}}",
+            "ticker": "{{ticker}}",
+            "orderType": "{{orderType}}",
+            "side": "{{side}}",
+            "tif": "{{tif}}",
+            "quantity": {{quantity}},
+            "price": {{price}}
+          }
+        ]
+      }
+  auth: inherit
+
+runtime:
+  variables:
+    - name: conid
+      value: "468091282"
+    - name: ticker
+      value: ZIM
+    - name: exchange
+      value: NYSE
+    - name: orderType
+      value: LMT
+    - name: side
+      value: BUY
+    - name: tif
+      value: DAY
+    - name: quantity
+      value: "100"
+    - name: price
+      value: "15.51"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -9,7 +9,7 @@ from sqlalchemy import text
 from ..common.api_client import IBKRClient
 from ..common.logger import IBKRLogger
 from ..common.db_manager import db_manager
-from ..schemas.session_schemas import AuthStatus, TickleResponse
+from ..schemas.session_schemas import AuthStatus, TickleResponse, SSOValidateResponse
 
 class SessionManager:
     """
@@ -57,25 +57,29 @@ class SessionManager:
             self.logger.error(f"Failed to check auth status: {e}")
             raise
 
-    def init_session(self) -> Dict[str, Any]:
+    def init_session(self, publish: bool = True, compete: bool = True) -> Dict[str, Any]:
         """
         Request initialization of the brokerage session.
         
         If successful, a new entry is created in the 'ibkr_sessions' table.
 
+        Args:
+            publish (bool): If true, the session is published to the broker. Defaults to True.
+            compete (bool): If true, other sessions are competed/disconnected. Defaults to True.
+
         Returns:
             Dict[str, Any]: API response metadata.
         """
-        self.logger.info("Initializing brokerage session.")
+        self.logger.info(f"Initializing brokerage session (publish={publish}, compete={compete}).")
         endpoint = "/iserver/auth/ssodh/init"
         try:
             # We use post but the response for init is often metadata or empty
-            data = self.client.post(endpoint)
+            data = self.client.post(endpoint, json_data={"publish": publish, "compete": compete})
             
             # Record the session start in the database
             self._record_session_start()
             
-            self.logger.log_action("init_session", message="Brokerage session initialization initiated.")
+            self.logger.log_action("init_session", message=f"Brokerage session initialization initiated (publish={publish}, compete={compete}).")
             return data
         except Exception as e:
             self.logger.error(f"Failed to initialize brokerage session: {e}")
@@ -117,6 +121,24 @@ class SessionManager:
             return response
         except Exception as e:
             self.logger.error(f"Tickle failed: {e}")
+            raise
+
+    def validate_sso(self) -> SSOValidateResponse:
+        """
+        Validate the current session for the SSO user.
+
+        Returns:
+            SSOValidateResponse: Validated SSO session status.
+        """
+        self.logger.info("Validating SSO session.")
+        endpoint = "/sso/validate"
+        try:
+            data = self.client.get(endpoint)
+            response = SSOValidateResponse(**data)
+            self.logger.log_action("validate_sso", message=f"SSO validation: {response.RESULT}")
+            return response
+        except Exception as e:
+            self.logger.error(f"SSO session validation failed: {e}")
             raise
 
     def reauthenticate(self) -> Dict[str, Any]:

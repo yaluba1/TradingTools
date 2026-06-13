@@ -1,0 +1,26 @@
+info:
+  name: Confirm Order
+  type: http
+  seq: 11
+
+http:
+  method: POST
+  url: https://localhost:{{gw_port}}/v1/api/iserver/reply/{{repplyId}}
+  body:
+    type: json
+    data: |-
+      { 
+        "confirmed": true
+      }
+  auth: inherit
+
+runtime:
+  variables:
+    - name: repplyId
+      value: 8d689159-6b93-4c80-af91-417df4016e9e
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -1,0 +1,52 @@
+info:
+  name: New Order Preview
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: https://localhost:{{gw_port}}/v1/api/iserver/account/{{accountId}}/orders/whatif
+  body:
+    type: json
+    data: |-
+      { 
+        "orders": [
+          {
+            "acctId": "{{accountId}}",
+            "conid": {{conid}},
+            "orderType": "{{orderType}}",
+            "side": "{{side}}",
+            "tif": "{{tif}}",
+            "quantity": {{quantity}},
+            "price": {{price}}
+          }
+        ]
+      }
+  auth: inherit
+
+runtime:
+  variables:
+    - name: conid
+      value: "468091282"
+    - name: ticker
+      value: ZIM
+      disabled: true
+    - name: exchange
+      value: NYSE
+      disabled: true
+    - name: orderType
+      value: LMT
+    - name: side
+      value: BUY
+    - name: tif
+      value: DAY
+    - name: quantity
+      value: "100"
+    - name: price
+      value: "15.51"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
